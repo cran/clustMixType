@@ -98,8 +98,8 @@ kproto.default <- function(x, k, lambda = NULL,  iter.max = 100, nstart=1, ...){
   # automatic calculation of lambda
   if(is.null(lambda)){
     if(anynum & anyfact){
-      vnum <- mean(sapply(x[,numvars], var))
-      vcat <- mean(sapply(x[,catvars], function(z) return(1-sum((table(z)/length(z))^2))))
+      vnum <- mean(sapply(x[,numvars, drop = FALSE], var))
+      vcat <- mean(sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/length(z))^2))))
       if (vnum == 0){
         warning("All numerical variables have zero variance.")
         anynum <- FALSE
@@ -112,8 +112,8 @@ kproto.default <- function(x, k, lambda = NULL,  iter.max = 100, nstart=1, ...){
       else lambda <- 1   
     }
   } 
-  
-  # initialize prototypes
+
+    # initialize prototypes
   if (length(k) == 1){
     ids <- sample(nrow(x), k)
     protos <- x[ids,]
@@ -131,8 +131,8 @@ kproto.default <- function(x, k, lambda = NULL,  iter.max = 100, nstart=1, ...){
   keep.protos <- rep(TRUE,k)
   for(l in 1:(k-1)){
     for(m in (l+1):k){
-      d1 <- sum((protos[l,numvars]-protos[m,numvars])^2) # euclidean for numerics
-      d2 <- sum(protos[l,catvars] != protos[m,catvars]) # wtd simple matching for categorics 
+      d1 <- sum((protos[l,numvars, drop = FALSE]-protos[m,numvars, drop = FALSE])^2) # euclidean for numerics
+      d2 <- sum(protos[l,catvars, drop = FALSE] != protos[m,catvars, drop = FALSE]) # wtd simple matching for categorics 
       if((d1+d2) == 0) keep.protos[m] <- FALSE 
     }
   }
@@ -158,7 +158,7 @@ kproto.default <- function(x, k, lambda = NULL,  iter.max = 100, nstart=1, ...){
     for(i in 1:k){
       #a0 <- proc.time()[3]      
       #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
-      d1 <- (x[,numvars] - matrix(rep(as.numeric(protos[i,numvars]), nrows), nrow=nrows, byrow=T))^2
+      d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
       d1 <- rowSums(d1)
       #a1 <- proc.time()[3]      
       #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
@@ -197,8 +197,8 @@ kproto.default <- function(x, k, lambda = NULL,  iter.max = 100, nstart=1, ...){
     # compute new prototypes
     for(i in 1:k){
       if(size[i] > 0){
-        protos[i, numvars] <- sapply(x[clusters==i, numvars], mean)
-        protos[i, catvars] <- sapply(x[clusters==i, catvars], function(z) levels(z)[which.max(table(z))])        
+        protos[i, numvars] <- sapply(x[clusters==i, numvars, drop = FALSE], mean)
+        protos[i, catvars] <- sapply(x[clusters==i, catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])        
       }  
     }    
     
@@ -206,8 +206,8 @@ kproto.default <- function(x, k, lambda = NULL,  iter.max = 100, nstart=1, ...){
     keep.protos <- rep(TRUE,k)
     for(l in 1:(k-1)){
       for(m in (l+1):k){
-        d1 <- sum((protos[l,numvars]-protos[m,numvars])^2) # euclidean for numerics
-        d2 <- sum(protos[l,catvars] != protos[m,catvars]) # wtd simple matching for categorics 
+        d1 <- sum((protos[l,numvars, drop = FALSE]-protos[m,numvars, drop = FALSE])^2) # euclidean for numerics
+        d2 <- sum(protos[l,catvars, drop = FALSE] != protos[m,catvars, drop = FALSE]) # wtd simple matching for categorics 
         if((d1+d2) == 0) keep.protos[m] <- FALSE 
       }
     }
@@ -308,8 +308,8 @@ predict.kproto <-function(object, newdata, ...){
   
   if(!all(names(object$centers) == names(x))) warning("Variable names of newdata do not match!")
   if(ncol(object$centers) != ncol(x)) stop("Coloumn number of newdata does not match object!")
-  if(!all(sapply(object$centers[,numvars], is.numeric))) stop("Numeric variables of object and newdata do not match!")
-  if(!all(sapply(object$centers[,catvars], is.factor))) stop("Factor variables of object and newdata do not match!")
+  if(!all(sapply(object$centers[,numvars, drop = FALSE], is.numeric))) stop("Numeric variables of object and newdata do not match!")
+  if(!all(sapply(object$centers[,catvars, drop = FALSE], is.factor))) stop("Factor variables of object and newdata do not match!")
   
   # compute distances 
   dists <- matrix(NA, nrow=nrow(x), ncol = k)
@@ -317,7 +317,7 @@ predict.kproto <-function(object, newdata, ...){
   for(i in 1:k){
     #a0 <- proc.time()[3]      
     #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
-    d1 <- (x[,numvars] - matrix(rep(as.numeric(protos[i,numvars]), nrows), nrow=nrows, byrow=T))^2
+    d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
     d1 <- rowSums(d1)
     #a1 <- proc.time()[3]      
     #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
@@ -471,8 +471,8 @@ lambdaest <- function(x){
   if(!anynum) cat("\n No numeric variables in x! \n\n")
   if(!anyfact) cat("\n No factor variables in x! \n\n")
   
-  if(anynum) vnum <- sapply(x[,numvars], var)
-  if(anyfact) vcat <- sapply(x[,catvars], function(z) return(1-sum((table(z)/length(z))^2)))
+  if(anynum) vnum <- sapply(x[,numvars, drop = FALSE], var)
+  if(anyfact) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/length(z))^2)))
   if (mean(vnum) == 0){
     warning("All numerical variables have zero variance.\n
             No meaninful estimation for lambda.\n
