@@ -4,10 +4,12 @@
 \alias{lambdaest}
 \title{compares variance of all variables}
 \usage{
-lambdaest(x)
+lambdaest(x, method = 1)
 }
 \arguments{
 \item{x}{Original data.}
+
+\item{method}{Integer 1 or 2. Specifies the heuristic used for factor variables.}
 }
 \value{
 \item{lambda}{Ratio of averages over all numeric/factor variables is returned.}
@@ -16,7 +18,8 @@ lambdaest(x)
 Investigation of variances to specify lambda for k prototypes clustering .
 }
 \details{
-Variance of numeric variables and \eqn{1-\sum_i p_i^2} of categorical variance is computed.
+Variance of numeric variables and \eqn{1-\sum_i p_i^2} (\code{method = 1}) or \eqn{1-\max_i p_i} (\code{method = 2}) 
+for categorical variables is computed.
 }
 \examples{
 # generate toy data with factors and numerics
@@ -39,8 +42,8 @@ x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnor
 
 x <- data.frame(x1,x2,x3,x4)
 
-a <- lambdaest(x)
-res <- kproto(x, 2, lambda = a)
+lambdaest(x)
+res <- kproto(x, 2, lambda = lambdaest(x))
 
 }
 \author{

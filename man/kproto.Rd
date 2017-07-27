@@ -13,10 +13,12 @@ kproto(x, ...)
 \arguments{
 \item{x}{Data frame with both mumerics and factors.}
 
-\item{k}{Either the number of clusters or a vector specifying indices of initial prototypes.}
+\item{k}{Either the number of clusters, a vector specifying indices of initial prototypes, or a data frame of prototypes of the same coloumns as \code{x}.}
 
 \item{lambda}{Parameter > 0 to trade off between Euclidean distance of numeric variables 
-and simple matching coefficient between categorical variables.}
+and simple matching coefficient between categorical variables. Also a vector of variable specific factors is possible where 
+the order must correspond to the order of the variables in the data. In this case all variables' distances will be multiplied by 
+their corresponding lambda value.}
 
 \item{iter.max}{Maximum number of iterations if no convergence before.}
 

@@ -1,7 +1,7 @@
-8a22e32cd95e4ed645e4fb40751e7736 *DESCRIPTION
+be89a8a63e05d60b2b52863b1980fe50 *DESCRIPTION
 d06bddccc7035fef6997a2e2a495f201 *NAMESPACE
-594c064d7ed8b6803798448ea4fa04d5 *R/kprototypes.R
+3f3dbe3803bf336d37f47049e0382c10 *R/kprototypes.R
 e3e99d4706df0987cebe682421eac5ef *man/clprofiles.Rd
-21ad3f65d28a0a26aba0dcaf6b36c1f5 *man/kproto.Rd
-872a466052227cfa2262e3eb68b4589f *man/lambdaest.Rd
+4f0dbc25dc1b46045f4828e344fb5795 *man/kproto.Rd
+673828c132cb863504790142cae4b331 *man/lambdaest.Rd
 b28780169691ca12e8be74ada6a1cd9b *man/predict.kproto.Rd
