@@ -8,7 +8,7 @@
 kproto(x, ...)
 
 \method{kproto}{default}(x, k, lambda = NULL, iter.max = 100, nstart = 1,
-  ...)
+  keep.data = TRUE, ...)
 }
 \arguments{
 \item{x}{Data frame with both mumerics and factors.}
@@ -23,6 +23,8 @@ their corresponding lambda value.}
 \item{iter.max}{Maximum number of iterations if no convergence before.}
 
 \item{nstart}{If > 1 repetetive computations with random initializations are computed and the result with minimum tot.dist is returned.}
+
+\item{keep.data}{Logical whether original should be included in the returned object.}
 
 \item{\dots}{Currently not used.}
 }
@@ -78,7 +80,7 @@ x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnor
 
 x <- data.frame(x1,x2,x3,x4)
 
-# apply k prototyps
+# apply k prototypes
 kpres <- kproto(x, 4)
 clprofiles(kpres, x)
 

@@ -22,6 +22,7 @@ kproto <- function (x, ...)
 #' their corresponding lambda value.
 #' @param iter.max Maximum number of iterations if no convergence before.
 #' @param nstart If > 1 repetetive computations with random initializations are computed and the result with minimum tot.dist is returned.
+#' @param keep.data Logical whether original should be included in the returned object.  
 #' @param \dots Currently not used.
 #
 #' @return \code{\link{kmeans}} like object of class \code{kproto}:
@@ -57,7 +58,7 @@ kproto <- function (x, ...)
 #' 
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
-#' # apply k prototyps
+#' # apply k prototypes
 #' kpres <- kproto(x, 4)
 #' clprofiles(kpres, x)
 #' 
@@ -81,14 +82,16 @@ kproto <- function (x, ...)
 #' 
 #' @method kproto default
 #' @export 
-kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, ...){
+kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.data = TRUE, ...){
   
   # initial error checks
   if(!is.data.frame(x)) stop("x should be a data frame!")
   if(ncol(x) < 2) stop("For clustering x should contain at least two variables!")
   if(iter.max < 1 | nstart < 1) stop("iter.max and nstart must not be specified < 1!")
-  if(!is.null(lambda)) if(any(lambda < 0)) stop("lambda must be specified >= 0 !")
-  
+  if(!is.null(lambda)){
+    if(any(lambda < 0)) stop("lambda must be specified >= 0!")
+    if(!any(lambda > 0)) stop("lambda must be specified > 0 for at least one variable!")
+    }
   # check for numeric and factor variables
   numvars <- sapply(x, is.numeric)
   anynum <- any(numvars)
@@ -285,6 +288,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, ...){
       if(res.new$tot.withinss < res$tot.withinss) res <- res.new
     }  
   
+  if(keep.data) res$data = x
   class(res) <- "kproto"
   return(res)
 }
@@ -464,15 +468,19 @@ clprofiles <- function(object, x, vars = NULL){
 
 #' @title compares variance of all variables
 #'
-#' @description Investigation of variances to specify lambda for k prototypes clustering .
+#' @description Investigation of variances to specify lambda for k prototypes clustering.
 #' 
 #' @details Variance of numeric variables and \eqn{1-\sum_i p_i^2} (\code{method = 1}) or \eqn{1-\max_i p_i} (\code{method = 2}) 
 #' for categorical variables is computed.
 #' 
 #' @param x Original data.
 #' @param method Integer 1 or 2. Specifies the heuristic used for factor variables.
+#' @param outtype Specidfies the desired output: either 'numeric', 'vector' or 'variation'.
 #' 
-#' @return \item{lambda}{Ratio of averages over all numeric/factor variables is returned.}
+#' @return \item{lambda}{Ratio of averages over all numeric/factor variables is returned. 
+#' In case of \code{outtype = "vector"} the separate lambda for all variables is returned as the inverse of the single variables' 
+#' variation as specified by the \code{method} argument. \code{outtype = "variation"} returns these values and is not ment to be 
+#' passed directly to \code{kproto()}.}
 #' 
 #' @examples
 #' # generate toy data with factors and numerics
@@ -496,20 +504,20 @@ clprofiles <- function(object, x, vars = NULL){
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' lambdaest(x)
-#' res <- kproto(x, 2, lambda = lambdaest(x))
+#' res <- kproto(x, 4, lambda = lambdaest(x))
 #' 
 #' @author \email{gero.szepannek@@web.de}
 #' 
 #' @rdname lambdaest
 #' 
 #' @importFrom stats var
-#' 
 #' @export
-lambdaest <- function(x, method = 1){
+lambdaest <- function(x, method = 1, outtype = "numeric"){
   # initial error checks
   if(!is.data.frame(x)) stop("x should be a data frame!")
   if(!method %in% 1:2) stop("Argument 'method' must be either 1 or 2!")
-  
+  if(!outtype %in% c("numeric","vector","variation")) stop("Wrong specificytion of argument 'outtype'!")
+    
   # check for numeric and factor variables
   numvars <- sapply(x, is.numeric)
   anynum <- any(numvars)
@@ -542,11 +550,20 @@ lambdaest <- function(x, method = 1){
   cat("Average categorical:", mean(vcat), "\n\n")
   
   if(anynum & anyfact) {
-    lambda <- mean(vnum)/mean(vcat); cat("Estimated lambda:", lambda, "\n\n")  
+    if(outtype == "numeric") {lambda <- mean(vnum)/mean(vcat); cat("Estimated lambda:", lambda, "\n\n")}
+    if(outtype != "numeric") {
+      lambda <- rep(0,ncol(x))
+      names(lambda) <- names(x)
+      lambda[numvars] <- vnum
+      lambda[catvars] <- vcat
+    }
+    if(outtype == "vector") lambda <- 1/lambda
     return(lambda)
   }
   if(!(anynum & anyfact)) invisible()
 }
+
+
 
 #' @export
 print.kproto <- function(x, ...){  
@@ -561,3 +578,83 @@ print.kproto <- function(x, ...){
   cat("Cluster prototypes:\n")
   print(x$centers)
 }
+
+#' @title Summary method for kproto cluster result
+#'
+#' @description Investigation of variances to specify lambda for k prototypes clustering.
+#' 
+#' @details For numeric variables statistics are computed for each clusters using \code{summary()}. 
+#' For categorical variables distribution percent are computed.  
+#' 
+#' @param object Object of class \code{kproto}.
+#' @param data Optional data set to be analyzed. If \code{!(is.null(data))} clusters for \code{data} are assigned by 
+#' \code{predict(object, data)}. If not specified the clusters of the original data ara analyzed. Only possible if \code{kproto} 
+#' has been called using \code{keep.data = TRUE}.
+#' @param pct.dig Number of digits for rounding percentages of factor variables.
+#' @param \dots Further arguments to be passed to internal call of \code{summary()} for numeric variables.
+#'  
+#' @return List where each element corresponds to one variable. Each row of any element corresponds to one cluster.
+#' 
+#' @examples
+#' # generate toy data with factors and numerics
+#' 
+#' n   <- 100
+#' prb <- 0.9
+#' muk <- 1.5 
+#' clusid <- rep(1:4, each = n)
+#' 
+#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+#' x1 <- as.factor(x1)
+#' 
+#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+#' x2 <- as.factor(x2)
+#' 
+#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
+#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
+#' 
+#' x <- data.frame(x1,x2,x3,x4)
+#' 
+#' res <- kproto(x, 4)
+#' summary(res)
+#' 
+#' @author \email{gero.szepannek@@web.de}
+#' 
+#' @rdname summary.kproto
+#'
+#' @importFrom stats predict 
+#' @export
+summary.kproto <- function(object, data = NULL, pct.dig = 3, ...){
+  if(class(object) != "kproto") stop("object must be of class kproto!")
+  
+  if(is.null(data)){
+    data <- object$data
+    cluster <- object$cluster
+  }
+  if(!is.null(data)) cluster <- predict(object, data)$cluster
+  
+  numvars <- sapply(data, is.numeric)
+  #anynum <- any(numvars)
+  catvars <- sapply(data, is.factor)
+  #anyfact <- any(catvars)
+
+  res <- NULL
+  for(i in 1:ncol(data)){
+    cat(names(data)[i],"\n")
+    if(numvars[i]){
+      resi <- by(data[,i], cluster, summary, ...)
+      res[[i]] <- matrix(unlist(resi), nrow = length(unique(cluster)), byrow=TRUE)
+      colnames(res[[i]]) <- names(resi[[1]])
+      rownames(res[[i]]) <- unique(cluster)
+      }
+    if(catvars[i])  res[[i]] <- round(prop.table(table(cluster, data[,i]),1), digits = pct.dig)
+    print(res[[i]])
+    cat("\n-----------------------------------------------------------------\n")
+  }
+  names(res) <- names(data)  
+
+  #return(res)
+  invisible(res)
+}
+
