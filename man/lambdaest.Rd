@@ -4,12 +4,14 @@
 \alias{lambdaest}
 \title{compares variance of all variables}
 \usage{
-lambdaest(x, method = 1, outtype = "numeric")
+lambdaest(x, num.method = 1, fac.method = 1, outtype = "numeric")
 }
 \arguments{
 \item{x}{Original data.}
 
-\item{method}{Integer 1 or 2. Specifies the heuristic used for factor variables.}
+\item{num.method}{Integer 1 or 2. Specifies the heuristic used for numeric variables.}
+
+\item{fac.method}{Integer 1 or 2. Specifies the heuristic used for factor variables.}
 
 \item{outtype}{Specidfies the desired output: either 'numeric', 'vector' or 'variation'.}
 }
@@ -23,8 +25,8 @@ passed directly to \code{kproto()}.}
 Investigation of variances to specify lambda for k prototypes clustering.
 }
 \details{
-Variance of numeric variables and \eqn{1-\sum_i p_i^2} (\code{method = 1}) or \eqn{1-\max_i p_i} (\code{method = 2}) 
-for categorical variables is computed.
+Variance (\code{num.method = 1}) or standard deviation (\code{num.method = 2}) of numeric variables 
+and \eqn{1-\sum_i p_i^2} (\code{fac.method = 1/3}) or \eqn{1-\max_i p_i} (\code{fac.method = 2/4}) for categorical variables is computed.
 }
 \examples{
 # generate toy data with factors and numerics

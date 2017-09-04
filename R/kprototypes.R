@@ -1,3 +1,10 @@
+###############################################
+# For their feedback and suggestions thanks to:
+# - Bridget Ssendagala 
+# - Ben Feng 
+# - Rabea Aschenbruck
+###############################################
+
 #' @title k prototypes clustering
 #' @description Computes k prototypes clustering for mixed type data.
 #' 
@@ -31,7 +38,7 @@ kproto <- function (x, ...)
 #' @return \item{lambda}{Distance parameter lambda.}
 #' @return \item{size}{Vector of cluster sizes.}
 #' @return \item{withinss}{Vector of summed distances to the cluster prototype per cluster.}
-#' @return \item{tot.withinss}{Target function: sum of all distances to clsuter prototype.}
+#' @return \item{tot.withinss}{Target function: sum of all distances to cluster prototype.}
 #' @return \item{dists}{Matrix with distances of observations to all cluster prototypes.}
 #' @return \item{iter}{Prespecified maximum number of iterations.}
 #' @return \item{trace}{List with two elements (vectors) tracing the iteration process: 
@@ -229,7 +236,6 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
         k <- length(size)
         protos <- protos[1:length(size),]  
         cat("Empty clusters occur. Cluster number reduced to:", k, "\n\n")
-        
       }
       
       # trace
@@ -237,12 +243,11 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
       moved <- c(moved, sum(clusters != old.clusters))
       
       # compute new prototypes
-      for(i in 1:k){
-        if(size[i] > 0){
-          protos[i, numvars] <- sapply(x[clusters==i, numvars, drop = FALSE], mean)
-          protos[i, catvars] <- sapply(x[clusters==i, catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])        
-        }  
-      }    
+      remids <- as.integer(names(size))
+      for(i in remids){
+        protos[which(remids == i), numvars] <- sapply(x[clusters==i, numvars, drop = FALSE], mean)
+        protos[which(remids == i), catvars] <- sapply(x[clusters==i, catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+      }
       
       # check for any equal prototypes and reduce cluster number in case of occurence
       keep.protos <- rep(TRUE,k)
@@ -256,7 +261,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
       if(!all(keep.protos)){
         protos <- protos[keep.protos,]
         k <- sum(keep.protos)
-        cat("Equal prototyps merged. Cluster number reduced to:", k, "\n\n")      
+        cat("Equal prototypes merged. Cluster number reduced to:", k, "\n\n")      
       }
       
       # add stopping rules
@@ -393,6 +398,7 @@ predict.kproto <-function(object, newdata, ...){
 #' @param object Object resulting from a call of resulting \code{kproto}. Also other \code{kmeans} like objects with \code{object$cluster} and \code{object$size} are possible. 
 #' @param x Original data.
 #' @param vars Vector of either coloumn indices or variable names.
+#' @param col Palette of cluster colours to be used for the plots.
 #
 #' @examples
 #' # generate toy data with factors and numerics
@@ -439,27 +445,29 @@ predict.kproto <-function(object, newdata, ...){
 #' @importFrom graphics boxplot
 #' @importFrom graphics legend
 #' @importFrom graphics par
+#' @importFrom RColorBrewer brewer.pal
 #' 
 #' @export
-clprofiles <- function(object, x, vars = NULL){
-  if(length(object$cluster) != nrow(x)) stop("Size of x does not match cluster result!") 
+clprofiles <- function(object, x, vars = NULL, col = brewer.pal(max(unique(object$cluster)), "Set3")){
+  if(length(object$cluster) != nrow(x)) stop("Size of x does not match cluster result!")
   if(is.null(vars)) vars <- 1:ncol(x)
   if(!is.numeric(vars)) vars <- sapply(vars, function(z) return(which(colnames(x)==z)))
   if(length(vars) < 1) stop("Specified variable names do not match x!")
   
   #clusids <- as.numeric(names(object$size)) # object size not named for kmeans
   clusids <- sort(unique(object$cluster)) 
+  if(length(col) != max(clusids)) warning("Length of col should match number of clusters!")
   
   par(ask=TRUE)
   for(i in vars){
     if(is.numeric(x[,i])){
-      boxplot(x[,i]~object$cluster, col = clusids, main = colnames(x)[i])
-      legend("topright", legend=clusids, fill = clusids)
+      boxplot(x[,i]~object$cluster, col = col, main = colnames(x)[i])
+      legend("topright", legend=clusids, fill = col)
     } 
     if(is.factor(x[,i])){
       tab <- table(x[,i], object$cluster)
       for(j in 1:length(object$size)) tab[,j] <- tab[,j]/object$size[j]
-      barplot(t(tab), beside = TRUE, main = colnames(x)[i])
+      barplot(t(tab), beside = TRUE, main = colnames(x)[i], col = col)
     } 
   } 
   invisible()
@@ -470,11 +478,12 @@ clprofiles <- function(object, x, vars = NULL){
 #'
 #' @description Investigation of variances to specify lambda for k prototypes clustering.
 #' 
-#' @details Variance of numeric variables and \eqn{1-\sum_i p_i^2} (\code{method = 1}) or \eqn{1-\max_i p_i} (\code{method = 2}) 
-#' for categorical variables is computed.
+#' @details Variance (\code{num.method = 1}) or standard deviation (\code{num.method = 2}) of numeric variables 
+#' and \eqn{1-\sum_i p_i^2} (\code{fac.method = 1/3}) or \eqn{1-\max_i p_i} (\code{fac.method = 2/4}) for categorical variables is computed.
 #' 
 #' @param x Original data.
-#' @param method Integer 1 or 2. Specifies the heuristic used for factor variables.
+#' @param num.method Integer 1 or 2. Specifies the heuristic used for numeric variables.
+#' @param fac.method Integer 1 or 2. Specifies the heuristic used for factor variables.
 #' @param outtype Specidfies the desired output: either 'numeric', 'vector' or 'variation'.
 #' 
 #' @return \item{lambda}{Ratio of averages over all numeric/factor variables is returned. 
@@ -511,11 +520,13 @@ clprofiles <- function(object, x, vars = NULL){
 #' @rdname lambdaest
 #' 
 #' @importFrom stats var
+#' @importFrom stats sd
 #' @export
-lambdaest <- function(x, method = 1, outtype = "numeric"){
+lambdaest <- function(x, num.method = 1, fac.method = 1, outtype = "numeric"){
   # initial error checks
   if(!is.data.frame(x)) stop("x should be a data frame!")
-  if(!method %in% 1:2) stop("Argument 'method' must be either 1 or 2!")
+  if(!num.method %in% 1:2) stop("Argument 'num.method' must be either 1 or 2!")
+  if(!fac.method %in% 1:2) stop("Argument 'fac.method' must be either 1 or 2!")
   if(!outtype %in% c("numeric","vector","variation")) stop("Wrong specificytion of argument 'outtype'!")
     
   # check for numeric and factor variables
@@ -526,9 +537,11 @@ lambdaest <- function(x, method = 1, outtype = "numeric"){
   if(!anynum) cat("\n No numeric variables in x! \n\n")
   if(!anyfact) cat("\n No factor variables in x! \n\n")
   
-  if(anynum) vnum <- sapply(x[,numvars, drop = FALSE], var)
-  if(anyfact & method == 1) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/length(z))^2)))
-  if(anyfact & method == 2) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-max(table(z)/length(z))))
+  if(anynum & num.method == 1) vnum <- sapply(x[,numvars, drop = FALSE], var)
+  if(anynum & num.method == 2) vnum <- sapply(x[,numvars, drop = FALSE], sd)
+  
+  if(anyfact & fac.method == 1) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/length(z))^2)))
+  if(anyfact & fac.method == 2) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-max(table(z)/length(z))))
   if (mean(vnum) == 0){
     warning("All numerical variables have zero variance.\n
             No meaninful estimation for lambda.\n
@@ -541,13 +554,15 @@ lambdaest <- function(x, method = 1, outtype = "numeric"){
             Rather use kmeans() instead of kprotos().")
     anyfact <- FALSE
   } 
-  cat("Numeric variances:\n")
+  if(num.method == 1) cat("Numeric variances:\n")
+  if(num.method == 2) cat("Numeric standard deviations:\n")
   print(vnum)
-  cat("Average numeric variance:", mean(vnum), "\n\n")
+  if(num.method == 1) cat("Average numeric variance:", mean(vnum), "\n\n")
+  if(num.method == 2) cat("Average numeric standard deviation:", mean(vnum), "\n\n")
   
-  cat("Heuristic for categorical variables:\n")
+  cat(paste("Heuristic for categorical variables: (method = ",fac.method,") \n", sep = ""))
   print(vcat)
-  cat("Average categorical:", mean(vcat), "\n\n")
+  cat("Average categorical variation:", mean(vcat), "\n\n")
   
   if(anynum & anyfact) {
     if(outtype == "numeric") {lambda <- mean(vnum)/mean(vcat); cat("Estimated lambda:", lambda, "\n\n")}
@@ -646,7 +661,7 @@ summary.kproto <- function(object, data = NULL, pct.dig = 3, ...){
       resi <- by(data[,i], cluster, summary, ...)
       res[[i]] <- matrix(unlist(resi), nrow = length(unique(cluster)), byrow=TRUE)
       colnames(res[[i]]) <- names(resi[[1]])
-      rownames(res[[i]]) <- unique(cluster)
+      rownames(res[[i]]) <- sort(unique(cluster))
       }
     if(catvars[i])  res[[i]] <- round(prop.table(table(cluster, data[,i]),1), digits = pct.dig)
     print(res[[i]])
@@ -657,4 +672,3 @@ summary.kproto <- function(object, data = NULL, pct.dig = 3, ...){
   #return(res)
   invisible(res)
 }
-

@@ -41,7 +41,7 @@ their corresponding lambda value.}
 
 \item{withinss}{Vector of summed distances to the cluster prototype per cluster.}
 
-\item{tot.withinss}{Target function: sum of all distances to clsuter prototype.}
+\item{tot.withinss}{Target function: sum of all distances to cluster prototype.}
 
 \item{dists}{Matrix with distances of observations to all cluster prototypes.}
 
