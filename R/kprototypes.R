@@ -398,8 +398,9 @@ predict.kproto <-function(object, newdata, ...){
 #' @param object Object resulting from a call of resulting \code{kproto}. Also other \code{kmeans} like objects with \code{object$cluster} and \code{object$size} are possible. 
 #' @param x Original data.
 #' @param vars Vector of either coloumn indices or variable names.
-#' @param col Palette of cluster colours to be used for the plots.
-#
+#' @param col Palette of cluster colours to be used for the plots. As a default RColorBrewer's 
+#' \code{brewer.pal(max(unique(object$cluster)), "Set3")} is used for k > 2 clusters and lightblue and orange else.
+#'
 #' @examples
 #' # generate toy data with factors and numerics
 #' 
@@ -448,12 +449,17 @@ predict.kproto <-function(object, newdata, ...){
 #' @importFrom RColorBrewer brewer.pal
 #' 
 #' @export
-clprofiles <- function(object, x, vars = NULL, col = brewer.pal(max(unique(object$cluster)), "Set3")){
+clprofiles <- function(object, x, vars = NULL, col = NULL){
   if(length(object$cluster) != nrow(x)) stop("Size of x does not match cluster result!")
   if(is.null(vars)) vars <- 1:ncol(x)
   if(!is.numeric(vars)) vars <- sapply(vars, function(z) return(which(colnames(x)==z)))
   if(length(vars) < 1) stop("Specified variable names do not match x!")
-  
+  if(is.null(col)){
+    k <- max(unique(object$cluster))
+    if(k > 2)  col <- brewer.pal(k, "Set3")
+    if(k == 2) col <- c("lightblue","orange")
+    if(k == 1) col <- "lightblue"
+  }
   #clusids <- as.numeric(names(object$size)) # object size not named for kmeans
   clusids <- sort(unique(object$cluster)) 
   if(length(col) != max(clusids)) warning("Length of col should match number of clusters!")
@@ -469,7 +475,8 @@ clprofiles <- function(object, x, vars = NULL, col = brewer.pal(max(unique(objec
       for(j in 1:length(object$size)) tab[,j] <- tab[,j]/object$size[j]
       barplot(t(tab), beside = TRUE, main = colnames(x)[i], col = col)
     } 
-  } 
+  }
+  par(ask="FALSE")
   invisible()
 }
 
@@ -672,3 +679,38 @@ summary.kproto <- function(object, data = NULL, pct.dig = 3, ...){
   #return(res)
   invisible(res)
 }
+
+
+
+# optilambda <- function(x, k, upper = 3*lambdaest(x), iter.max = 100, nstart=2, keep.data = FALSE){
+#   
+#   foo <- function(lamb, x = x, k = k, iter.max = iter.max, nstart=nstart, keep.data = keep.data){
+#     res <- kproto(x = x, k = k, lambda = lamb, iter.max = iter.max, nstart=nstart, keep.data = keep.data)  
+#     numvars <- sapply(x, is.numeric)
+#     catvars <- sapply(x, is.factor)
+#     nrows <- nrow(x)
+#     protos <- res$centers
+#     
+#     dists <- ndists <- cdists <- matrix(NA, nrow=nrows, ncol = nrow(res$centers)) #dists <- rep(NA, nrows)
+#     for(i in 1:nrow(res$centers)){
+#       d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+#       d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
+#       ndists[,i] <- rowSums(d1)
+#       cdists[,i] <- lamb * rowSums(d2)
+#       dists[,i]  <- ndists[,i] + cdists[,i]
+#       }
+#     
+#     #min.dists     <- apply(cbind(res$cluster, dists), 1, function(z) z[z[1]+1])
+#     min.ndists     <- apply(cbind(res$cluster, ndists), 1, function(z) z[z[1]+1])
+#     min.cdists     <- apply(cbind(res$cluster, cdists), 1, function(z) z[z[1]+1])
+#     crit           <- abs(sum(min.ndists) - sum(min.cdists))
+#     return(crit)
+#     }
+#   
+#     foo(lamb, x = x, k = k, iter.max = iter.max, nstart=nstart, keep.data = keep.data)
+#     lambda <- optimize(foo, lower = 0, upper = upper, x = x, k = k, iter.max = iter.max, nstart=nstart, keep.data = keep.data)$minimum
+#     return(lambda)  
+#   }
+# 
+# optilambda(x=x, k = 4, nstart = 5)
+# res <- kproto(x = x, k = k, lambda = 9.56, iter.max = iter.max, nstart=5, keep.data = keep.data)  

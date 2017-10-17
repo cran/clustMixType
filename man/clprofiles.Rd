@@ -4,8 +4,7 @@
 \alias{clprofiles}
 \title{profile k prototypes clustering}
 \usage{
-clprofiles(object, x, vars = NULL,
-  col = brewer.pal(max(unique(object$cluster)), "Set3"))
+clprofiles(object, x, vars = NULL, col = NULL)
 }
 \arguments{
 \item{object}{Object resulting from a call of resulting \code{kproto}. Also other \code{kmeans} like objects with \code{object$cluster} and \code{object$size} are possible.}
@@ -14,7 +13,8 @@ clprofiles(object, x, vars = NULL,
 
 \item{vars}{Vector of either coloumn indices or variable names.}
 
-\item{col}{Palette of cluster colours to be used for the plots.}
+\item{col}{Palette of cluster colours to be used for the plots. As a default RColorBrewer's 
+\code{brewer.pal(max(unique(object$cluster)), "Set3")} is used for k > 2 clusters and lightblue and orange else.}
 }
 \description{
 Visualization of k prototypes clustering result for cluster interpretation.
