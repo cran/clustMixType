@@ -119,7 +119,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
       } 
       if (vcat == 0){
         warning("All categorical variables have zero variance.")
-        anycat <- FALSE
+        anyfact <- FALSE
       } 
       if(anynum & anyfact) {lambda <- vnum/vcat; cat("Estimated lambda:", lambda, "\n\n")}  
       else lambda <- 1   
