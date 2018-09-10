@@ -2,7 +2,7 @@
 % Please edit documentation in R/kprototypes.R
 \name{lambdaest}
 \alias{lambdaest}
-\title{compares variance of all variables}
+\title{Compares Variability of Variables}
 \usage{
 lambdaest(x, num.method = 1, fac.method = 1, outtype = "numeric")
 }
@@ -13,20 +13,20 @@ lambdaest(x, num.method = 1, fac.method = 1, outtype = "numeric")
 
 \item{fac.method}{Integer 1 or 2. Specifies the heuristic used for factor variables.}
 
-\item{outtype}{Specidfies the desired output: either 'numeric', 'vector' or 'variation'.}
+\item{outtype}{Specifies the desired output: either 'numeric', 'vector' or 'variation'.}
 }
 \value{
 \item{lambda}{Ratio of averages over all numeric/factor variables is returned. 
 In case of \code{outtype = "vector"} the separate lambda for all variables is returned as the inverse of the single variables' 
-variation as specified by the \code{method} argument. \code{outtype = "variation"} returns these values and is not ment to be 
+variation as specified by the \code{num.method} and \code{fac.method} argument. \code{outtype = "variation"} directly returns these quantities and is not ment to be 
 passed directly to \code{kproto()}.}
 }
 \description{
-Investigation of variances to specify lambda for k prototypes clustering.
+Investigation of the variables' variances/concentrations to support specification of lambda for k-prototypes clustering.
 }
 \details{
 Variance (\code{num.method = 1}) or standard deviation (\code{num.method = 2}) of numeric variables 
-and \eqn{1-\sum_i p_i^2} (\code{fac.method = 1/3}) or \eqn{1-\max_i p_i} (\code{fac.method = 2/4}) for categorical variables is computed.
+and \eqn{1-\sum_i p_i^2} (\code{fac.method = 1}) or \eqn{1-\max_i p_i} (\code{fac.method = 2}) for factors is computed.
 }
 \examples{
 # generate toy data with factors and numerics
@@ -56,4 +56,3 @@ res <- kproto(x, 4, lambda = lambdaest(x))
 \author{
 \email{gero.szepannek@web.de}
 }
-

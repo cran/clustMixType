@@ -2,7 +2,7 @@
 % Please edit documentation in R/kprototypes.R
 \name{summary.kproto}
 \alias{summary.kproto}
-\title{Summary method for kproto cluster result}
+\title{Summary Method for kproto Cluster Result}
 \usage{
 \method{summary}{kproto}(object, data = NULL, pct.dig = 3, ...)
 }
@@ -10,7 +10,7 @@
 \item{object}{Object of class \code{kproto}.}
 
 \item{data}{Optional data set to be analyzed. If \code{!(is.null(data))} clusters for \code{data} are assigned by 
-\code{predict(object, data)}. If not specified the clusters of the original data ara analyzed. Only possible if \code{kproto} 
+\code{predict(object, data)}. If not specified the clusters of the original data ara analyzed which is only possible if \code{kproto} 
 has been called using \code{keep.data = TRUE}.}
 
 \item{pct.dig}{Number of digits for rounding percentages of factor variables.}
@@ -21,11 +21,11 @@ has been called using \code{keep.data = TRUE}.}
 List where each element corresponds to one variable. Each row of any element corresponds to one cluster.
 }
 \description{
-Investigation of variances to specify lambda for k prototypes clustering.
+Investigation of variances to specify lambda for k-prototypes clustering.
 }
 \details{
 For numeric variables statistics are computed for each clusters using \code{summary()}. 
-For categorical variables distribution percent are computed.
+For categorical variables distribution percentages are computed.
 }
 \examples{
 # generate toy data with factors and numerics
@@ -55,4 +55,3 @@ summary(res)
 \author{
 \email{gero.szepannek@web.de}
 }
-

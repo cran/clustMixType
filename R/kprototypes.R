@@ -5,13 +5,18 @@
 # - Rabea Aschenbruck
 ###############################################
 
-#' @title k prototypes clustering
-#' @description Computes k prototypes clustering for mixed type data.
+#' @title k-Prototypes Clustering
+#' @description Computes k-prototypes clustering for mixed-type data.
 #' 
-#' @details The algorithm like k means iteratively recomputes cluster prototypes and reassigns clusters.
+#' @details The algorithm like k-means iteratively recomputes cluster prototypes and reassigns clusters.
 #' Clusters are assigned using \eqn{d(x,y) =  d_{euclid}(x,y) + \lambda d_{simple\,matching}(x,y)}.
 #' Cluster prototypes are computed as cluster means for numeric variables and modes for factors 
 #' (cf. Huang, 1998).
+#' In case of \code{na.rm = FALSE}: for each observation variables with missings are ignored 
+#' (i.e. only the remaining variables are considered for distance computation). 
+#' In consequence for observations with missings this might result in a change of variable's weighting compared to the one specified
+#' by \code{lambda}. Further note: For these observations distances to the prototypes will typically be smaller as they are based 
+#' on fewer variables.
 #' 
 #' 
 #' @rdname kproto
@@ -21,15 +26,17 @@ kproto <- function (x, ...)
 
 #' @aliases kproto kproto.default 
 #' 
-#' @param x Data frame with both mumerics and factors.
-#' @param k Either the number of clusters, a vector specifying indices of initial prototypes, or a data frame of prototypes of the same coloumns as \code{x}.
+#' @param x Data frame with both numerics and factors.
+#' @param k Either the number of clusters, a vector specifying indices of initial prototypes, or a data frame of prototypes of the same columns as \code{x}.
 #' @param lambda Parameter > 0 to trade off between Euclidean distance of numeric variables 
 #' and simple matching coefficient between categorical variables. Also a vector of variable specific factors is possible where 
 #' the order must correspond to the order of the variables in the data. In this case all variables' distances will be multiplied by 
 #' their corresponding lambda value.
 #' @param iter.max Maximum number of iterations if no convergence before.
 #' @param nstart If > 1 repetetive computations with random initializations are computed and the result with minimum tot.dist is returned.
-#' @param keep.data Logical whether original should be included in the returned object.  
+#' @param na.rm A logical value indicating whether NA values should be stripped before the computation proceeds.
+#' @param keep.data Logical whether original should be included in the returned object.
+#' @param verbose Logical whether report of the number of NAs for each variable should be skipped.  
 #' @param \dots Currently not used.
 #
 #' @return \code{\link{kmeans}} like object of class \code{kproto}:
@@ -37,8 +44,8 @@ kproto <- function (x, ...)
 #' @return \item{centers}{Data frame of cluster prototypes.}
 #' @return \item{lambda}{Distance parameter lambda.}
 #' @return \item{size}{Vector of cluster sizes.}
-#' @return \item{withinss}{Vector of summed distances to the cluster prototype per cluster.}
-#' @return \item{tot.withinss}{Target function: sum of all distances to cluster prototype.}
+#' @return \item{withinss}{Vector of within cluster distances for each cluster, i.e. summed distances of all observations belonging to a cluster to their respective prototype.}
+#' @return \item{tot.withinss}{Target function: sum of all observations' distances to their corresponding cluster prototype.}
 #' @return \item{dists}{Matrix with distances of observations to all cluster prototypes.}
 #' @return \item{iter}{Prespecified maximum number of iterations.}
 #' @return \item{trace}{List with two elements (vectors) tracing the iteration process: 
@@ -65,11 +72,11 @@ kproto <- function (x, ...)
 #' 
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
-#' # apply k prototypes
+#' # apply k-prototypes
 #' kpres <- kproto(x, 4)
 #' clprofiles(kpres, x)
 #' 
-#' # in real world  clusters are often not as clear cut
+#' # in real world clusters are often not as clear cut
 #' # by variation of lambda the emphasize is shifted towards factor / numeric variables    
 #' kpres <- kproto(x, 2)
 #' clprofiles(kpres, x)
@@ -89,7 +96,7 @@ kproto <- function (x, ...)
 #' 
 #' @method kproto default
 #' @export 
-kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.data = TRUE, ...){
+kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.rm = TRUE, keep.data = TRUE, verbose = FALSE, ...){
   
   # initial error checks
   if(!is.data.frame(x)) stop("x should be a data frame!")
@@ -104,35 +111,49 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
   anynum <- any(numvars)
   catvars <- sapply(x, is.factor)
   anyfact <- any(catvars)
-  if(!anynum) cat("\n No numeric variables in x! \n\n")
-  if(!anyfact) cat("\n No factor variables in x! \n\n")
+  if(!anynum) stop("\n No numeric variables in x! Try using kmodes() from package klaR...\n\n")
+  if(!anyfact) stop("\n No factor variables in x! Try using kmeans()...\n\n")
   
-  # automatic calculation of lambda
-  if(length(lambda) > 1) {if(length(lambda) != sum(c(numvars,catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")}
-  if(is.null(lambda)){
-    if(anynum & anyfact){
-      vnum <- mean(sapply(x[,numvars, drop = FALSE], var))
-      vcat <- mean(sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/length(z))^2))))
-      if (vnum == 0){
-        warning("All numerical variables have zero variance.")
-        anynum <- FALSE
-      } 
-      if (vcat == 0){
-        warning("All categorical variables have zero variance.")
-        anycat <- FALSE
-      } 
-      if(anynum & anyfact) {lambda <- vnum/vcat; cat("Estimated lambda:", lambda, "\n\n")}  
-      else lambda <- 1   
+  # treatment of missings
+  NAcount <- apply(x, 2, function(z) sum(is.na(z)))
+  if(!verbose){
+    cat("# NAs in variables:\n")
+    print(NAcount)
+  }
+  if(any(NAcount == nrow(x))) stop(paste("Variable(s) have only NAs please remove them:",names(NAcount)[NAcount == nrow(x)],"!"))
+  if(na.rm) {
+    miss <- apply(x, 1, function(z) any(is.na(z)))
+    if(!verbose) cat(sum(miss), "observation(s) with NAs.\n")
+    if(sum(miss) > 0)message("Observations with NAs are removed.\n")
+    if(!verbose) cat("\n")
+    x <- x[!miss,]
+    } # remove missings
+  
+  if(!na.rm){
+    allNAs <- apply(x,1,function(z) all(is.na(z)))
+    if(sum(allNAs) > 0){
+      if(!verbose) cat(sum(allNAs), "observation(s) where all variables NA.\n")
+      warning("No meaningful cluster assignment possible for observations where all variables NA.\n")
+      if(!verbose) cat("\n")
+      
     }
-  } 
-
+  }
+  
+  if(nrow(x) == 1) stop("Only one observation clustering not meaningful.")
+  
+  k_input <- k # store input k for nstart > 1 as clusters can be merged 
+  
   # initialize prototypes
   if(!is.data.frame(k)){
     if (length(k) == 1){
+      if(as.integer(k) != k){k <- as.integer(k); warning(paste("k has been set to", k,"!"))}
+      if(nrow(x) < k) stop("Data frame has less observations than clusters!")
+      if(k < 1) stop("Number of clusters k must not be smaller than 1!")
       ids <- sample(nrow(x), k)
       protos <- x[ids,]
     }
     if (length(k) > 1){
+      if(nrow(x) < length(k)) stop("Data frame has less observations than clusters!")
       ids <- k
       k <- length(ids)
       if(length(unique(ids)) != length(ids)) stop("If k is specified as a vector it should contain different indices!")
@@ -143,14 +164,34 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
     rm(ids)
   }
   if(is.data.frame(k)){
-    if(length(names(k)) != length(names(x))) stop("k and x have different numbers of coloumns!")
-    if(any(names(k) != names(x))) stop("k and x have different coloumn names!")
+    if(nrow(x) < nrow(k)) stop("Data frame has less observations than clusters!")
+    if(length(names(k)) != length(names(x))) stop("k and x have different numbers of columns!")
+    if(any(names(k) != names(x))) stop("k and x have different column names!")
     if(anynum) {if( any(sapply(k, is.numeric) != numvars)) stop("Numeric variables of k and x do not match!")}
     if(anyfact) {if( any(sapply(k, is.factor) != catvars)) stop("Factor variables of k and x do not match!")}
     protos <- k
     k <- nrow(protos)
   }
-
+  
+  # automatic calculation of lambda
+  if(length(lambda) > 1) {if(length(lambda) != sum(c(numvars,catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")}
+  if(is.null(lambda)){
+    if(anynum & anyfact){
+      vnum <- mean(sapply(x[,numvars, drop = FALSE], var, na.rm = TRUE))
+      vcat <- mean(sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2))))
+      if (vnum == 0){
+        warning("All numerical variables have zero variance.")
+        anynum <- FALSE
+      } 
+      if (vcat == 0){
+        warning("All categorical variables have zero variance.")
+        anyfact <- FALSE
+      } 
+      if(anynum & anyfact) {lambda <- vnum/vcat; if(!verbose) {cat("Estimated lambda:", lambda, "\n\n")}}  
+      else lambda <- 1   
+    }
+  } 
+  
   # initialize clusters
   clusters  <- numeric(nrow(x)) 
   tot.dists <- NULL
@@ -158,17 +199,18 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
   
   # special case only one cluster
   if(k == 1){
-    protos[1, numvars] <- sapply(x[, numvars, drop = FALSE], mean)
+    protos[1, numvars] <- sapply(x[, numvars, drop = FALSE], mean, na.rm = TRUE)
     protos[1, catvars] <- sapply(x[, catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
-    
+
     nrows <- nrow(x)
     dists <- matrix(NA, nrow=nrows, ncol = k) #dists <- rep(NA, nrows)
-    d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[1,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
-    if(length(lambda) == 1) d1 <- rowSums(d1)
-    if(length(lambda) > 1) d1 <- d1 %*% lambda[numvars]
+    d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[1, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+    if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = T)
+    if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
     d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[1,j], nrows)) )
-    if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-    if(length(lambda) > 1) d2 <- d2 %*% lambda[catvars]
+    d2[is.na(d2)] <- FALSE
+    if(length(lambda) == 1) d2 <- lambda * rowSums(d2)#, na.rm = TRUE) # ~> cf. ln. 184
+    if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
     dists[,1] <- d1 + d2
     
     tot.within <- within <- sum(dists)
@@ -192,7 +234,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
     if(!all(keep.protos)){
       protos <- protos[keep.protos,]
       k <- sum(keep.protos)
-      cat("Equal prototyps merged. Cluster number reduced to:", k, "\n\n")      
+      message("Equal prototypes merged. Cluster number reduced to:", k, "\n\n")      
     }
     
     
@@ -205,14 +247,15 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
       for(i in 1:k){
         #a0 <- proc.time()[3]      
         #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
-        d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
-        if(length(lambda) == 1) d1 <- rowSums(d1)
-        if(length(lambda) > 1) d1 <- d1 %*% lambda[numvars]
+        d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+        if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+        if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
         #a1 <- proc.time()[3]      
         #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
         d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
+        d2[is.na(d2)] <- FALSE
         if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-        if(length(lambda) > 1) d2 <- d2 %*% lambda[catvars]
+        if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
         #a2 <- proc.time()[3]      
         dists[,i] <- d1 + d2
         #cat(a1-a0, a2-a1, "\n")
@@ -245,7 +288,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
       # compute new prototypes
       remids <- as.integer(names(size))
       for(i in remids){
-        protos[which(remids == i), numvars] <- sapply(x[clusters==i, numvars, drop = FALSE], mean)
+        protos[which(remids == i), numvars] <- sapply(x[clusters==i, numvars, drop = FALSE], mean, na.rm = TRUE)
         protos[which(remids == i), catvars] <- sapply(x[clusters==i, catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
       }
       
@@ -275,6 +318,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
   
 
   
+  names(clusters) <- row.names(dists) <-row.names(x)
   # create result: 
   res <- list(cluster = clusters,  
               centers = protos, 
@@ -289,7 +333,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
   # loop: if nstart > 1:
   if(nstart > 1)
     for(j in 2:nstart){
-      res.new <- kproto(x=x, k=k, lambda = lambda,  iter.max = iter.max, nstart=1)
+      res.new <- kproto(x=x, k=k_input, lambda = lambda,  iter.max = iter.max, nstart=1)
       if(res.new$tot.withinss < res$tot.withinss) res <- res.new
     }  
   
@@ -299,17 +343,11 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
 }
 
 
-
-#' @title k prototypes clustering
+#' @title Assign k-Prototypes Clusters
 #'
-#' @description Predicts k prototypes cluster memberships and distances for new data.
+#' @description Predicts k-prototypes cluster memberships and distances for new data.
 #' 
-#' @details The algorithm like k means iteratively recomputes cluster prototypes and reassigns clusters.
-#' Clusters are assigned using \eqn{d(x,y) =  d_{euclid}(x,y) + \lambda d_{simple\,matching}(x,y)}.
-#' Cluster prototypes are computed as cluster means for numeric variables and modes for factors 
-#' (cf. Huang, 1998).
-#' 
-#' @param object Object resulting from a call of resulting \code{kproto}.
+#' @param object Object resulting from a call of \code{kproto}.
 #' @param newdata New data frame (of same structure) where cluster memberships are to be predicted.
 #' @param \dots Currently not used.
 #
@@ -338,7 +376,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart=1, keep.d
 #' 
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
-#' # apply k prototyps
+#' # apply k-prototyps
 #' kpres <- kproto(x, 4)
 #' predicted.clusters <- predict(kpres, x) 
 #' 
@@ -358,7 +396,7 @@ predict.kproto <-function(object, newdata, ...){
   catvars <- sapply(x, is.factor)
   
   if(!all(names(object$centers) == names(x))) warning("Variable names of newdata do not match!")
-  if(ncol(object$centers) != ncol(x)) stop("Coloumn number of newdata does not match object!")
+  if(ncol(object$centers) != ncol(x)) stop("Column number of newdata does not match object!")
   if(!all(sapply(object$centers[,numvars, drop = FALSE], is.numeric))) stop("Numeric variables of object and newdata do not match!")
   if(!all(sapply(object$centers[,catvars, drop = FALSE], is.factor))) stop("Factor variables of object and newdata do not match!")
   
@@ -369,13 +407,14 @@ predict.kproto <-function(object, newdata, ...){
     #a0 <- proc.time()[3]      
     #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
     d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
-    if(length(lambda) == 1) d1 <- rowSums(d1)
-    if(length(lambda) > 1) d1<- d1 %*% lambda[numvars]
+    if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+    if(length(lambda) > 1) d1<- as.matrix(d1) %*% lambda[numvars]
     #a1 <- proc.time()[3]      
     #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
     d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
+    d2[is.na(d2)] <- FALSE
     if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-    if(length(lambda) > 1) d2 <- d2 %*% lambda[catvars]
+    if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
     #a2 <- proc.time()[3]      
     dists[,i] <- d1 + d2
     #cat(a1-a0, a2-a1, "\n")
@@ -389,15 +428,15 @@ predict.kproto <-function(object, newdata, ...){
 }
 
 
-#' @title profile k prototypes clustering
+#' @title Profiling k-Prototypes Clustering
 #'
-#' @description Visualization of k prototypes clustering result for cluster interpretation.
+#' @description Visualization of a k-prototypes clustering result for cluster interpretation.
 #' 
 #' @details For numerical variables boxplots and for factor variables barplots of each cluster are generated.
 #' 
 #' @param object Object resulting from a call of resulting \code{kproto}. Also other \code{kmeans} like objects with \code{object$cluster} and \code{object$size} are possible. 
 #' @param x Original data.
-#' @param vars Vector of either coloumn indices or variable names.
+#' @param vars Optional vector of either column indices or variable names.
 #' @param col Palette of cluster colours to be used for the plots. As a default RColorBrewer's 
 #' \code{brewer.pal(max(unique(object$cluster)), "Set3")} is used for k > 2 clusters and lightblue and orange else.
 #'
@@ -422,11 +461,11 @@ predict.kproto <-function(object, newdata, ...){
 #' 
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
-#' # apply k prototyps
+#' # apply k-prototyps
 #' kpres <- kproto(x, 4)
 #' clprofiles(kpres, x)
 #' 
-#' # in real world  clusters are often not as clear cut
+#' # in real world clusters are often not as clear cut
 #' # by variation of lambda the emphasize is shifted towards factor / numeric variables    
 #' kpres <- kproto(x, 2)
 #' clprofiles(kpres, x)
@@ -481,21 +520,21 @@ clprofiles <- function(object, x, vars = NULL, col = NULL){
 }
 
 
-#' @title compares variance of all variables
+#' @title Compares Variability of Variables
 #'
-#' @description Investigation of variances to specify lambda for k prototypes clustering.
+#' @description Investigation of the variables' variances/concentrations to support specification of lambda for k-prototypes clustering.
 #' 
 #' @details Variance (\code{num.method = 1}) or standard deviation (\code{num.method = 2}) of numeric variables 
-#' and \eqn{1-\sum_i p_i^2} (\code{fac.method = 1/3}) or \eqn{1-\max_i p_i} (\code{fac.method = 2/4}) for categorical variables is computed.
+#' and \eqn{1-\sum_i p_i^2} (\code{fac.method = 1}) or \eqn{1-\max_i p_i} (\code{fac.method = 2}) for factors is computed.
 #' 
 #' @param x Original data.
 #' @param num.method Integer 1 or 2. Specifies the heuristic used for numeric variables.
 #' @param fac.method Integer 1 or 2. Specifies the heuristic used for factor variables.
-#' @param outtype Specidfies the desired output: either 'numeric', 'vector' or 'variation'.
+#' @param outtype Specifies the desired output: either 'numeric', 'vector' or 'variation'.
 #' 
 #' @return \item{lambda}{Ratio of averages over all numeric/factor variables is returned. 
 #' In case of \code{outtype = "vector"} the separate lambda for all variables is returned as the inverse of the single variables' 
-#' variation as specified by the \code{method} argument. \code{outtype = "variation"} returns these values and is not ment to be 
+#' variation as specified by the \code{num.method} and \code{fac.method} argument. \code{outtype = "variation"} directly returns these quantities and is not ment to be 
 #' passed directly to \code{kproto()}.}
 #' 
 #' @examples
@@ -544,11 +583,11 @@ lambdaest <- function(x, num.method = 1, fac.method = 1, outtype = "numeric"){
   if(!anynum) cat("\n No numeric variables in x! \n\n")
   if(!anyfact) cat("\n No factor variables in x! \n\n")
   
-  if(anynum & num.method == 1) vnum <- sapply(x[,numvars, drop = FALSE], var)
-  if(anynum & num.method == 2) vnum <- sapply(x[,numvars, drop = FALSE], sd)
+  if(anynum & num.method == 1) vnum <- sapply(x[,numvars, drop = FALSE], var, na.rm =TRUE)
+  if(anynum & num.method == 2) vnum <- sapply(x[,numvars, drop = FALSE], sd, na.rm = TRUE)
   
-  if(anyfact & fac.method == 1) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/length(z))^2)))
-  if(anyfact & fac.method == 2) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-max(table(z)/length(z))))
+  if(anyfact & fac.method == 1) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2)))
+  if(anyfact & fac.method == 2) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-max(table(z)/sum(!is.na(z)))))
   if (mean(vnum) == 0){
     warning("All numerical variables have zero variance.\n
             No meaninful estimation for lambda.\n
@@ -601,16 +640,16 @@ print.kproto <- function(x, ...){
   print(x$centers)
 }
 
-#' @title Summary method for kproto cluster result
+#' @title Summary Method for kproto Cluster Result
 #'
-#' @description Investigation of variances to specify lambda for k prototypes clustering.
+#' @description Investigation of variances to specify lambda for k-prototypes clustering.
 #' 
 #' @details For numeric variables statistics are computed for each clusters using \code{summary()}. 
-#' For categorical variables distribution percent are computed.  
+#' For categorical variables distribution percentages are computed.  
 #' 
 #' @param object Object of class \code{kproto}.
 #' @param data Optional data set to be analyzed. If \code{!(is.null(data))} clusters for \code{data} are assigned by 
-#' \code{predict(object, data)}. If not specified the clusters of the original data ara analyzed. Only possible if \code{kproto} 
+#' \code{predict(object, data)}. If not specified the clusters of the original data ara analyzed which is only possible if \code{kproto} 
 #' has been called using \code{keep.data = TRUE}.
 #' @param pct.dig Number of digits for rounding percentages of factor variables.
 #' @param \dots Further arguments to be passed to internal call of \code{summary()} for numeric variables.
@@ -643,7 +682,7 @@ print.kproto <- function(x, ...){
 #' 
 #' @author \email{gero.szepannek@@web.de}
 #' 
-#' @rdname summary.kproto
+#' @rdname summary
 #'
 #' @importFrom stats predict 
 #' @export

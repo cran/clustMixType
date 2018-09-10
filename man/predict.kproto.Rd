@@ -2,12 +2,12 @@
 % Please edit documentation in R/kprototypes.R
 \name{predict.kproto}
 \alias{predict.kproto}
-\title{k prototypes clustering}
+\title{Assign k-Prototypes Clusters}
 \usage{
 \method{predict}{kproto}(object, newdata, ...)
 }
 \arguments{
-\item{object}{Object resulting from a call of resulting \code{kproto}.}
+\item{object}{Object resulting from a call of \code{kproto}.}
 
 \item{newdata}{New data frame (of same structure) where cluster memberships are to be predicted.}
 
@@ -21,13 +21,7 @@
 \item{dists}{Matrix with distances of observations to all cluster prototypes.}
 }
 \description{
-Predicts k prototypes cluster memberships and distances for new data.
-}
-\details{
-The algorithm like k means iteratively recomputes cluster prototypes and reassigns clusters.
-Clusters are assigned using \eqn{d(x,y) =  d_{euclid}(x,y) + \lambda d_{simple\,matching}(x,y)}.
-Cluster prototypes are computed as cluster means for numeric variables and modes for factors 
-(cf. Huang, 1998).
+Predicts k-prototypes cluster memberships and distances for new data.
 }
 \examples{
 # generate toy data with factors and numerics
@@ -50,7 +44,7 @@ x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnor
 
 x <- data.frame(x1,x2,x3,x4)
 
-# apply k prototyps
+# apply k-prototyps
 kpres <- kproto(x, 4)
 predicted.clusters <- predict(kpres, x) 
 
@@ -59,4 +53,3 @@ predicted.clusters <- predict(kpres, x)
 \author{
 \email{gero.szepannek@web.de}
 }
-

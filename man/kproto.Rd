@@ -3,17 +3,19 @@
 \name{kproto}
 \alias{kproto}
 \alias{kproto.default}
-\title{k prototypes clustering}
+\title{k-Prototypes Clustering}
 \usage{
 kproto(x, ...)
 
-\method{kproto}{default}(x, k, lambda = NULL, iter.max = 100, nstart = 1,
-  keep.data = TRUE, ...)
+\method{kproto}{default}(x, k, lambda = NULL, iter.max = 100,
+  nstart = 1, na.rm = TRUE, keep.data = TRUE, verbose = FALSE, ...)
 }
 \arguments{
-\item{x}{Data frame with both mumerics and factors.}
+\item{x}{Data frame with both numerics and factors.}
 
-\item{k}{Either the number of clusters, a vector specifying indices of initial prototypes, or a data frame of prototypes of the same coloumns as \code{x}.}
+\item{\dots}{Currently not used.}
+
+\item{k}{Either the number of clusters, a vector specifying indices of initial prototypes, or a data frame of prototypes of the same columns as \code{x}.}
 
 \item{lambda}{Parameter > 0 to trade off between Euclidean distance of numeric variables 
 and simple matching coefficient between categorical variables. Also a vector of variable specific factors is possible where 
@@ -24,9 +26,11 @@ their corresponding lambda value.}
 
 \item{nstart}{If > 1 repetetive computations with random initializations are computed and the result with minimum tot.dist is returned.}
 
+\item{na.rm}{A logical value indicating whether NA values should be stripped before the computation proceeds.}
+
 \item{keep.data}{Logical whether original should be included in the returned object.}
 
-\item{\dots}{Currently not used.}
+\item{verbose}{Logical whether report of the number of NAs for each variable should be skipped.}
 }
 \value{
 \code{\link{kmeans}} like object of class \code{kproto}:
@@ -39,9 +43,9 @@ their corresponding lambda value.}
 
 \item{size}{Vector of cluster sizes.}
 
-\item{withinss}{Vector of summed distances to the cluster prototype per cluster.}
+\item{withinss}{Vector of within cluster distances for each cluster, i.e. summed distances of all observations belonging to a cluster to their respective prototype.}
 
-\item{tot.withinss}{Target function: sum of all distances to cluster prototype.}
+\item{tot.withinss}{Target function: sum of all observations' distances to their corresponding cluster prototype.}
 
 \item{dists}{Matrix with distances of observations to all cluster prototypes.}
 
@@ -51,13 +55,18 @@ their corresponding lambda value.}
 \code{tot.dists} and \code{moved} number of observations over all iterations.}
 }
 \description{
-Computes k prototypes clustering for mixed type data.
+Computes k-prototypes clustering for mixed-type data.
 }
 \details{
-The algorithm like k means iteratively recomputes cluster prototypes and reassigns clusters.
+The algorithm like k-means iteratively recomputes cluster prototypes and reassigns clusters.
 Clusters are assigned using \eqn{d(x,y) =  d_{euclid}(x,y) + \lambda d_{simple\,matching}(x,y)}.
 Cluster prototypes are computed as cluster means for numeric variables and modes for factors 
 (cf. Huang, 1998).
+In case of \code{na.rm = FALSE}: for each observation variables with missings are ignored 
+(i.e. only the remaining variables are considered for distance computation). 
+In consequence for observations with missings this might result in a change of variable's weighting compared to the one specified
+by \code{lambda}. Further note: For these observations distances to the prototypes will typically be smaller as they are based 
+on fewer variables.
 }
 \examples{
 # generate toy data with factors and numerics
@@ -80,11 +89,11 @@ x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnor
 
 x <- data.frame(x1,x2,x3,x4)
 
-# apply k prototypes
+# apply k-prototypes
 kpres <- kproto(x, 4)
 clprofiles(kpres, x)
 
-# in real world  clusters are often not as clear cut
+# in real world clusters are often not as clear cut
 # by variation of lambda the emphasize is shifted towards factor / numeric variables    
 kpres <- kproto(x, 2)
 clprofiles(kpres, x)
@@ -96,11 +105,10 @@ kpres <- kproto(x, 2, lambda = 25)
 clprofiles(kpres, x)
 
 }
-\author{
-\email{gero.szepannek@web.de}
-}
 \references{
 Z.Huang (1998): Extensions to the k-Means Algorithm for Clustering Large Data Sets with Categorical Variables, 
 Data Mining and Knowledge Discovery 2, 283-304.
 }
-
+\author{
+\email{gero.szepannek@web.de}
+}

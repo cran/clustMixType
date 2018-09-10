@@ -2,7 +2,7 @@
 % Please edit documentation in R/kprototypes.R
 \name{clprofiles}
 \alias{clprofiles}
-\title{profile k prototypes clustering}
+\title{Profiling k-Prototypes Clustering}
 \usage{
 clprofiles(object, x, vars = NULL, col = NULL)
 }
@@ -11,13 +11,13 @@ clprofiles(object, x, vars = NULL, col = NULL)
 
 \item{x}{Original data.}
 
-\item{vars}{Vector of either coloumn indices or variable names.}
+\item{vars}{Optional vector of either column indices or variable names.}
 
 \item{col}{Palette of cluster colours to be used for the plots. As a default RColorBrewer's 
 \code{brewer.pal(max(unique(object$cluster)), "Set3")} is used for k > 2 clusters and lightblue and orange else.}
 }
 \description{
-Visualization of k prototypes clustering result for cluster interpretation.
+Visualization of a k-prototypes clustering result for cluster interpretation.
 }
 \details{
 For numerical variables boxplots and for factor variables barplots of each cluster are generated.
@@ -43,11 +43,11 @@ x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnor
 
 x <- data.frame(x1,x2,x3,x4)
 
-# apply k prototyps
+# apply k-prototyps
 kpres <- kproto(x, 4)
 clprofiles(kpres, x)
 
-# in real world  clusters are often not as clear cut
+# in real world clusters are often not as clear cut
 # by variation of lambda the emphasize is shifted towards factor / numeric variables    
 kpres <- kproto(x, 2)
 clprofiles(kpres, x)
@@ -62,4 +62,3 @@ clprofiles(kpres, x)
 \author{
 \email{gero.szepannek@web.de}
 }
-
