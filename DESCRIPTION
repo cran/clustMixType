@@ -1,8 +1,8 @@
 Package: clustMixType
-Version: 0.1-36
-Date: 2018-09-05
+Version: 0.2-1
+Date: 2019-03-16
 Title: k-Prototypes Clustering for Mixed Variable-Type Data
-Author: Gero Szepannek
+Author: Gero Szepannek [aut, cre], Rabea Aschenbruck [aut]
 Maintainer: Gero Szepannek <gero.szepannek@web.de>
 Imports: RColorBrewer
 Suggests: testthat
@@ -11,8 +11,8 @@ Description: Functions to perform k-prototypes partitioning clustering for
     Algorithm for Clustering Large Data Sets with Categorical Variables, Data Mining
     and Knowledge Discovery 2, 283-304, <DOI:10.1023/A:1009769707641>.
 License: GPL (>= 2)
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 NeedsCompilation: no
-Packaged: 2018-09-05 15:06:11 UTC; szepannek
+Packaged: 2019-03-16 15:58:44 UTC; szepannek
 Repository: CRAN
-Date/Publication: 2018-09-10 11:10:11 UTC
+Date/Publication: 2019-03-16 17:13:31 UTC

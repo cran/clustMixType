@@ -1,0 +1,14 @@
+bref = c(  
+bibentry(
+    bibtype = "Article",
+    title = "clustMixType: User-Friendly Clustering of Mixed-Type Data in R",
+    author = c(
+      person("Gero", "Szepannek")
+    ),
+    journal = "The R Journal",
+    pages = "200-208",
+    year = 2018L,
+    url = "https://doi.org/10.32614/RJ-2018-048",
+    doi = "10.32614/RJ-2018-048"
+  )
+)

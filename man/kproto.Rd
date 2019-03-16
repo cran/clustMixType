@@ -8,7 +8,7 @@
 kproto(x, ...)
 
 \method{kproto}{default}(x, k, lambda = NULL, iter.max = 100,
-  nstart = 1, na.rm = TRUE, keep.data = TRUE, verbose = FALSE, ...)
+  nstart = 1, na.rm = TRUE, keep.data = TRUE, verbose = TRUE, ...)
 }
 \arguments{
 \item{x}{Data frame with both numerics and factors.}
@@ -30,7 +30,7 @@ their corresponding lambda value.}
 
 \item{keep.data}{Logical whether original should be included in the returned object.}
 
-\item{verbose}{Logical whether report of the number of NAs for each variable should be skipped.}
+\item{verbose}{Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.}
 }
 \value{
 \code{\link{kmeans}} like object of class \code{kproto}:
@@ -106,9 +106,17 @@ clprofiles(kpres, x)
 
 }
 \references{
-Z.Huang (1998): Extensions to the k-Means Algorithm for Clustering Large Data Sets with Categorical Variables, 
-Data Mining and Knowledge Discovery 2, 283-304.
+\itemize{
+    \item Szepannek, G. (2018): clustMixType: User-Friendly Clustering of Mixed-Type Data in R, 
+          \href{https://doi.org/10.32614/RJ-2018-048}{\emph{The R Journal 10/2}}, 200-208.
+    \item Z.Huang (1998): 
+          Extensions to the k-Means Algorithm for Clustering Large Data Sets with Categorical Variables, 
+          Data Mining and Knowledge Discovery 2, 283-304.
+  }
 }
 \author{
 \email{gero.szepannek@web.de}
 }
+\keyword{classif}
+\keyword{cluster}
+\keyword{multivariate}
