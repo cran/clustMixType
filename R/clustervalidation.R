@@ -106,7 +106,7 @@ create.N_w <- function(object){
 #'
 #' @return For computing the optimal number of clusters based on the Cindex for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the Cindex-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -128,7 +128,6 @@ create.N_w <- function(object){
 #' n   <- 10
 #' prb <- 0.99
 #' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -144,7 +143,7 @@ create.N_w <- function(object){
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate cindex-value
 #' cindex_value <- cindex_kproto(object = kpres)
@@ -266,7 +265,7 @@ cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, .
 #'
 #' @return For computing the optimal number of clusters based on the Dunn index for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the Dunn index-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -287,7 +286,6 @@ cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, .
 #' n   <- 10
 #' prb <- 0.99
 #' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -303,7 +301,7 @@ cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, .
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate index-value
 #' dunn_value <- dunn_kproto(object = kpres)
@@ -438,7 +436,7 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #'
 #' @return For computing the optimal number of clusters based on the Gamma index for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the Gamma index-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -459,7 +457,6 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #' n   <- 10
 #' prb <- 0.99
 #' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -475,7 +472,7 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate index-value
 #' gamma_value <- gamma_kproto(object = kpres)
@@ -603,7 +600,7 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
 #'
 #' @return For computing the optimal number of clusters based on the Gplus index for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the Gplus index-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -623,8 +620,7 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
 #' 
 #' n   <- 10
 #' prb <- 0.99
-#' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
+#' muk <- 2.5
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -640,7 +636,7 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate index-value
 #' gplus_value <- gplus_kproto(object = kpres)
@@ -765,7 +761,7 @@ gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
 #'
 #' @return For computing the optimal number of clusters based on the McClain index for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the McClain index-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -785,8 +781,7 @@ gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
 #' 
 #' n   <- 10
 #' prb <- 0.99
-#' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
+#' muk <- 2.5
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -802,7 +797,7 @@ gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate index-value
 #' mcclain_value <- mcclain_kproto(object = kpres)
@@ -896,7 +891,7 @@ mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #'
 #' @return For computing the optimal number of clusters based on the Ptbiserial index for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the Ptbiserial index-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -916,8 +911,7 @@ mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #' 
 #' n   <- 10
 #' prb <- 0.99
-#' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
+#' muk <- 2.5
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -933,7 +927,7 @@ mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate index-value
 #' Ptbiserial_value <- ptbiserial_kproto(object = kpres)
@@ -1051,7 +1045,7 @@ ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, 
 #'
 #' @return For computing the optimal number of clusters based on the Silhouette index for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the Silhouette index-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -1071,8 +1065,7 @@ ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, 
 #' 
 #' n   <- 10
 #' prb <- 0.99
-#' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
+#' muk <- 2.5
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -1088,7 +1081,7 @@ ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, 
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate index-value
 #' silhouette_value <- silhouette_kproto(object = kpres)
@@ -1228,7 +1221,7 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #'
 #' @return For computing the optimal number of clusters based on the Tau index for k-Prototype clustering the output contains:
 #' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 #' @return For computing the Tau index-value for a given k-Prototype clustering the output contains:
 #' @return \item{index}{calculated index-value}
 #'
@@ -1248,8 +1241,7 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #' 
 #' n   <- 10
 #' prb <- 0.99
-#' muk <- 2.5 
-#' clusid <- rep(1:4, each = n)
+#' muk <- 2.5
 #' 
 #' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 #' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -1265,7 +1257,7 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
 #' x <- data.frame(x1,x2,x3,x4)
 #' 
 #' # apply k prototyps
-#' kpres <- kproto(x, 4)
+#' kpres <- kproto(x, 4, keep.data=TRUE)
 #' 
 #' # calculate index-value
 #' tau_value <- tau_kproto(object = kpres)

@@ -27,7 +27,7 @@ For computing the optimal number of clusters based on the Tau index for k-Protot
 
 \item{k_opt}{optimal number of clusters}
 
-\item{indices}{calculated indices for \eqn{k=2,...,k_max}}
+\item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
 
 For computing the Tau index-value for a given k-Prototype clustering the output contains:
 
@@ -53,8 +53,7 @@ The maximum value of the index is used to indicate the optimal number of cluster
 
 n   <- 10
 prb <- 0.99
-muk <- 2.5 
-clusid <- rep(1:4, each = n)
+muk <- 2.5
 
 x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
 x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
@@ -70,7 +69,7 @@ x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnor
 x <- data.frame(x1,x2,x3,x4)
 
 # apply k prototyps
-kpres <- kproto(x, 4)
+kpres <- kproto(x, 4, keep.data=TRUE)
 
 # calculate index-value
 tau_value <- tau_kproto(object = kpres)

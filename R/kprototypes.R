@@ -103,6 +103,8 @@ kproto <- function (x, ...)
 #' 
 #' @rdname kproto
 #' 
+#' @importFrom stats complete.cases 
+#' 
 #' @method kproto default
 #' @export 
 kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.rm = TRUE, keep.data = TRUE, verbose = TRUE, ...){
@@ -158,6 +160,8 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
   if(!is.data.frame(k)){
     if (length(k) == 1){
       if(as.integer(k) != k){k <- as.integer(k); warning(paste("k has been set to", k,"!"))}
+      if(sum(complete.cases(x)) < k) stop("Data frame has less complete observations than clusters!")
+      ids <- sample(row.names(x[complete.cases(x),]), k)
       if(nrow(x) < k) stop("Data frame has less observations than clusters!")
       ids <- sample(nrow(x), k)
       protos <- x[ids,]
@@ -170,6 +174,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
       if(any(ids<1)|any(ids>nrow(x))) stop("If k is specified as a vector all elements must be valid indices of x!")
       #check for integer
       protos <- x[ids,]
+      if(any(!complete.cases(protos))) stop("Choose initial prototypes without missing values!")
     }
     rm(ids)
   }
@@ -180,6 +185,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
     if(anynum) {if( any(sapply(k, is.numeric) != numvars)) stop("Numeric variables of k and x do not match!")}
     if(anyfact) {if( any(sapply(k, is.factor) != catvars)) stop("Factor variables of k and x do not match!")}
     protos <- k
+    if(any(!complete.cases(protos))) stop("Prototypes with missing values. Choose initial prototypes without missing values!")
     k <- nrow(protos)
   }
   if(k < 1) stop("Number of clusters k must not be smaller than 1!")
@@ -259,7 +265,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
     # assign clusters 
     old.clusters  <- clusters
     # clusters      <- apply(dists, 1, function(z) which.min(z))
-    clusters      <- apply(dists, 1, function(z) {a <- which.min(z); if (length(a)>1) a <- sample(a,1); return(a)}) # sample in case of multiple minima
+    clusters      <- apply(dists, 1, function(z) {a <- which(z == min(z)); if (length(a)>1) a <- sample(a,1); return(a)}) # sample in case of multiple minima
     size          <- table(clusters)  
     min.dists     <- apply(cbind(clusters, dists), 1, function(z) z[z[1]+1])
     within        <- as.numeric(by(min.dists, clusters, sum))
@@ -362,7 +368,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
   # loop: if nstart > 1:
   if(nstart > 1)
     for(j in 2:nstart){
-      res.new <- kproto(x=x, k=k_input, lambda = lambda,  iter.max = iter.max, nstart=1, verbose=verbose)
+      res.new <- kproto(x=x, k=k_input, lambda = lambda,  iter.max = iter.max, nstart=1, verbose=verbose, na.rm = na.rm)
       if(res.new$tot.withinss < res$tot.withinss) res <- res.new
     }  
   
