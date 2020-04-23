@@ -1,9 +1,6 @@
 
 
 
-
-
-
 create.S_w_kpa <- function(object){
   numvars <- sapply(object$data, is.numeric)
   catvars <- sapply(object$data, is.factor)
@@ -81,101 +78,7 @@ create.N_w <- function(object){
 
 
 
-
-#' @title Validating k Prototypes Clustering: Cindex
-#'
-#' @description Calculating the Cindex for a k-Prototypes clustering with k clusters or computing the optimal number of clusters based on the Cindex for k-Prototype clustering.
-#' 
-#' @details \deqn{Cindex = \frac{S_w-S_{min}}{S_{max}-S_{min}}} \cr
-#' For \eqn{S_{min}} and \eqn{S_{max}} it is nessesary to calculate the distances between all pairs of points in the entire data set (\eqn{\frac{n(n-1)}{2}}). 
-#' \eqn{S_{min}} is the sum of the "total number of pairs of objects belonging to the same cluster" smallest distances and 
-#' \eqn{S_{max}} is the sum of the "total number of pairs of objects belonging to the same cluster" largest distances. \eqn{S_w} is the sum of the within-cluster distances. \cr
-#' The minimum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param S_sort for internal purposes only
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the Cindex for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the Cindex-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \emph{Journal of Statistical Software, Vol 61, Issue 6}.
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{www.jstatsoft.org}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{gamma_kproto}}, \code{\link[clustMixType]{gplus_kproto}},
-#' \code{\link[clustMixType]{mcclain_kproto}}, \code{\link[clustMixType]{ptbiserial_kproto}},
-#' \code{\link[clustMixType]{silhouette_kproto}}, \code{\link[clustMixType]{tau_kproto}}
-#'
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5 
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate cindex-value
-#' cindex_value <- cindex_kproto(object = kpres)
-#' 
-#' # calculate optimal number of cluster
-#' k_opt <- cindex_kproto(data = x, k = 3:5, nstart = 5, verbose=FALSE)
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname cindex_kproto
-#' @importFrom utils head
-#' @importFrom utils tail
-#' 
-#' @export
-cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("for clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
@@ -224,117 +127,44 @@ cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, .
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = cindex_kproto(object = object, S_sort = S_sort), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
       object <- kproto(x = data, k = q, keep.data = TRUE, ...)
-      if(is.na(indices[length(object$size) == names(indices)])){
-        indices[length(object$size)==names(indices)] <- cindex_kproto(object = object, S_sort = S_sort)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = cindex_kproto(object = object, S_sort = S_sort), 
+                                        "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- cindex_kproto(object = object, S_sort = S_sort)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
+        }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices)[1]))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
     
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == min(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
   }
 }
 
 
-
-
-
-#' @title Validating k Prototypes Clustering: Dunn index
-#'
-#' @description Calculating the Dunn index for a k-Prototypes clustering with k clusters or 
-#' computing the optimal number of clusters based on the Dunn index for k-Prototype clustering.
-#' 
-#' @details \deqn{Dunn = \frac{\min_{1 \leq i < j \leq q} d(C_i, C_j)}{\max_{1 \leq k \leq q} diam(C_k)}} \cr
-#' The following applies: The dissimilarity between the two clusters \eqn{C_i} and \eqn{C_j} is defined as \eqn{d(C_i, C_j)=\min_{x \in C_i, y \in C_j} d(x,y)} and
-#' the diameter of a cluster is defined as \eqn{diam(C_k)=\max_{x,y \in C} d(x,y)}. \cr
-#' The maximum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the Dunn index for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the Dunn index-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{Journal of Statistical Software, Vol 61, Issue 6}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{gamma_kproto}}, \code{\link[clustMixType]{gplus_kproto}},
-#' \code{\link[clustMixType]{mcclain_kproto}}, \code{\link[clustMixType]{ptbiserial_kproto}},
-#' \code{\link[clustMixType]{silhouette_kproto}}, \code{\link[clustMixType]{tau_kproto}}
-#'
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5 
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate index-value
-#' dunn_value <- dunn_kproto(object = kpres)
-#' 
-#' \dontrun{
-#' # calculate optimal number of cluster
-#' k_opt <- dunn_kproto(data = x, k = 3:5, nstart = 5, verbose = FALSE)
-#' }
-#' 
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname dunn_kproto
-#' 
-#' @export
-dunn_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("For clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
@@ -392,118 +222,45 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
-      object <- kproto(x = data, k = q, ...)
-      if(length(object$size)>1){
-        if(is.na(indices[length(object$size) == names(indices)])){
-          indices[length(object$size) == names(indices)] <- dunn_kproto(object = object)
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = dunn_kproto(object = object), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
+      object <- kproto(x = data, k = q, keep.data = TRUE, ...)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = dunn_kproto(object = object), 
+                                          "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- dunn_kproto(object = object)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices, decreasing = TRUE)[1]))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
     
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == max(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
+
   }
 }
 
 
-
-
-#' @title Validating k Prototypes Clustering: Gamma index
-#'
-#' @description Calculating the Gamma index for a k-Prototypes clustering with k clusters or 
-#' computing the optimal number of clusters based on the Gamma index for k-Prototype clustering.
-#' 
-#' @details \deqn{Gamma = \frac{s(+)-s(-)}{s(+)+s(-)}} \cr 
-#' Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
-#' \eqn{s(+)} is the number of concordant comparisons and \eqn{s(-)} is the number of discordant comparisons.
-#' A comparison is named concordant (resp. discordant) if a within-cluster dissimilarity is strictly less (resp. strictly greater) than a between-cluster dissimilarity.\cr
-#' The maximum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param dists for internal purposes only
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the Gamma index for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the Gamma index-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{Journal of Statistical Software, Vol 61, Issue 6}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{dunn_kproto}}, \code{\link[clustMixType]{gplus_kproto}},
-#' \code{\link[clustMixType]{mcclain_kproto}}, \code{\link[clustMixType]{ptbiserial_kproto}},
-#' \code{\link[clustMixType]{silhouette_kproto}}, \code{\link[clustMixType]{tau_kproto}}
-#' 
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5 
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate index-value
-#' gamma_value <- gamma_kproto(object = kpres)
-#' 
-#' # calculate optimal number of cluster
-#' k_opt <- gamma_kproto(data = x, k = 3:5, nstart = 5, verbose = FALSE)
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname gamma_kproto
-#' @importFrom stats na.omit
-#' 
-#' @export
-gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("For clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
@@ -556,118 +313,45 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
     
     index <- numeric(n)
     
-    if(is.null(k)){k <- 2:sqrt(n)}
-    
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
-      object <- kproto(x = data, k = q, ...)
-      if(is.na(indices[length(object$size) == names(indices)])){
-        indices[length(object$size) == names(indices)] <- gamma_kproto(object = object, dists = dists)
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = gamma_kproto(object = object, dists = dists), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
+      object <- kproto(x = data, k = q, keep.data = TRUE, ...)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = gamma_kproto(object = object, dists = dists), 
+                                          "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- gamma_kproto(object = object, dists = dists)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
+        }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices, decreasing = TRUE)[1]))
-  
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
+    
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == max(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
+
   }
 }
 
 
-
-
-#' @title Validating k Prototypes Clustering: Gplus index
-#'
-#' @description Calculating the Gplus index for a k-Prototypes clustering with k clusters or 
-#' computing the optimal number of clusters based on the Gplus index for k-Prototype clustering.
-#' 
-#' @details \deqn{Gplus = \frac{2 \cdot s(-)}{\frac{n(n-1)}{2} \cdot (\frac{n(n-1)}{2}-1)}} \cr 
-#' Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
-#' \eqn{s(-)} is the number of discordant comparisons and a comparison is named discordant if a within-cluster 
-#' dissimilarity is strictly greater than a between-cluster dissimilarity. \cr
-#' The minimum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param dists for internal purposes only
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the Gplus index for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the Gplus index-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{Journal of Statistical Software, Vol 61, Issue 6}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{dunn_kproto}}, \code{\link[clustMixType]{gamma_kproto}},
-#' \code{\link[clustMixType]{mcclain_kproto}}, \code{\link[clustMixType]{ptbiserial_kproto}},
-#' \code{\link[clustMixType]{silhouette_kproto}}, \code{\link[clustMixType]{tau_kproto}}
-#' 
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate index-value
-#' gplus_value <- gplus_kproto(object = kpres)
-#' 
-#' # calculate optimal number of cluster
-#' k_opt <- gplus_kproto(data = x, k = 3:5, nstart = 5, verbose = FALSE)
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname gplus_kproto
-#' @importFrom stats na.omit
-#' 
-#' @export
-gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("For clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
@@ -720,114 +404,44 @@ gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
-      object <- kproto(x = data, k = q, ...)
-      if(is.na(indices[length(object$size) == names(indices)])){
-        indices[length(object$size) == names(indices)] <- gplus_kproto(object = object, dists = dists)
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = gplus_kproto(object = object, dists = dists), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
+      object <- kproto(x = data, k = q, keep.data = TRUE, ...)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = gplus_kproto(object = object, dists = dists), 
+                                          "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- gplus_kproto(object = object, dists = dists)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
+        }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices)[1]))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
     
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == min(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
   }
 }
 
 
-
-
-
-#' @title Validating k Prototypes Clustering: McClain index
-#'
-#' @description Calculating the McClain index for a k-Prototypes clustering with k clusters or 
-#' computing the optimal number of clusters based on the McClain index for k-Prototype clustering.
-#' 
-#' @details \deqn{McClain = \frac{\bar{S}_w}{\bar{S}_b}} \cr 
-#' \eqn{\bar{S}_w} is the sum of within-cluster distances divided by the number of within-cluster distances and 
-#' \eqn{\bar{S}_b} is the sum of between-cluster distances divided by the number of between-cluster distances.\cr
-#' The minimum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the McClain index for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the McClain index-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{Journal of Statistical Software, Vol 61, Issue 6}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{dunn_kproto}}, \code{\link[clustMixType]{gamma_kproto}},
-#' \code{\link[clustMixType]{gplus_kproto}}, \code{\link[clustMixType]{ptbiserial_kproto}},
-#' \code{\link[clustMixType]{silhouette_kproto}}, \code{\link[clustMixType]{tau_kproto}}
-#'
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate index-value
-#' mcclain_value <- mcclain_kproto(object = kpres)
-#' 
-#' # calculate optimal number of cluster
-#' k_opt <- mcclain_kproto(data = x, k = 3:5, nstart = 5, verbose = FALSE)
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname mcclain_kproto
-#' 
-#' @export
-mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("For clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("kproto_object should have the original data included (kproto(..., keep.data = TRUE))")
@@ -847,117 +461,44 @@ mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
-      object <- kproto(x = data, k = q, ...)
-      if(is.na(indices[length(object$size) == names(indices)])){
-        indices[length(object$size) == names(indices)] <- mcclain_kproto(object = object)
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = mcclain_kproto(object = object), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
+      object <- kproto(x = data, k = q, keep.data = TRUE, ...)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = mcclain_kproto(object = object), 
+                                          "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- mcclain_kproto(object = object)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
+        }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices)[1]))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
     
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == min(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
   }
 }
 
 
-
-
-#' @title Validating k Prototypes Clustering: Ptbiserial index
-#'
-#' @description Calculating the Ptbiserial index for a k-Prototypes clustering with k clusters or 
-#' computing the optimal number of clusters based on the Ptbiserial index for k-Prototype clustering.
-#' 
-#' @details \deqn{Ptbiserial = \frac{(\bar{S}_b-\bar{S}_w) \cdot (\frac{N_w \cdot N_b}{N_t^2})^{0.5}}{s_d}} \cr 
-#' \eqn{\bar{S}_w} is the sum of within-cluster distances divided by the number of within-cluster distances and 
-#' \eqn{\bar{S}_b} is the sum of between-cluster distances divided by the number of between-cluster distances.\cr
-#' \eqn{N_t} is the total number of pairs of objects in the data, \eqn{N_w} is the total number of pairs of 
-#' objects belonging to the samecluster and \eqn{N_b} is the total number of pairs of objects belonging to different clusters.
-#' \eqn{s_d} is the standard deviation of all distances.\cr
-#' The maximum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param s_d for internal purposes only
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the Ptbiserial index for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the Ptbiserial index-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{Journal of Statistical Software, Vol 61, Issue 6}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{dunn_kproto}}, \code{\link[clustMixType]{gamma_kproto}},
-#' \code{\link[clustMixType]{gplus_kproto}}, \code{\link[clustMixType]{mcclain_kproto}},
-#' \code{\link[clustMixType]{silhouette_kproto}}, \code{\link[clustMixType]{tau_kproto}}
-#' 
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate index-value
-#' Ptbiserial_value <- ptbiserial_kproto(object = kpres)
-#' 
-#' # calculate optimal number of cluster
-#' k_opt <- ptbiserial_kproto(data = x, k = 3:5, nstart = 5, verbose = FALSE)
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname ptbiserial_kproto
-#' 
-#' @export
-ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("For clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(...,keep.data=TRUE))")
@@ -1005,113 +546,44 @@ ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, 
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
-      object <- kproto(x = data, k=q, ...)
-      if(is.na(indices[length(object$size) == names(indices)])){
-        indices[length(object$size) == names(indices)] <- ptbiserial_kproto(object = object, s_d = s_d)
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = ptbiserial_kproto(object = object, s_d = s_d), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
+      object <- kproto(x = data, k = q, keep.data = TRUE, ...)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = ptbiserial_kproto(object = object, s_d = s_d), 
+                                          "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- ptbiserial_kproto(object = object, s_d = s_d)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
+        }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices, decreasing = TRUE)[1]))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
     
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == max(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
   }
 }
 
 
-
-
-#' @title Validating k Prototypes Clustering: Silhouette index
-#'
-#' @description Calculating the Silhouette index for a k-Prototypes clustering with k clusters or 
-#' computing the optimal number of clusters based on the Silhouette index for k-Prototype clustering.
-#' 
-#' @details \deqn{Silhouette = \frac{1}{n} \sum_{i=1}^n \frac{b(i)-a(i)}{max(a(i),b(i))}} \cr 
-#' \eqn{a(i)} is the average dissimilarity of the i\emph{th} object to all other objects of the same/own cluster.
-#' \eqn{b(i)=min(d(i,C))}, where \eqn{d(i,C)} is the average dissimilarity of the i\emph{th} object to all the other clusters except the own/same cluster.\cr
-#' The maximum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the Silhouette index for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the Silhouette index-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{Journal of Statistical Software, Vol 61, Issue 6}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{dunn_kproto}}, \code{\link[clustMixType]{gamma_kproto}},
-#' \code{\link[clustMixType]{gplus_kproto}}, \code{\link[clustMixType]{mcclain_kproto}},
-#' \code{\link[clustMixType]{ptbiserial_kproto}}, \code{\link[clustMixType]{tau_kproto}}
-#'
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate index-value
-#' silhouette_value <- silhouette_kproto(object = kpres)
-#' 
-#' # calculate optimal number of cluster
-#' k_opt <- silhouette_kproto(data = x, k = 3:5, nstart = 5, verbose = FALSE)
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname silhouette_kproto
-#' 
-#' @export
-silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("For clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(...,keep.data=TRUE))")
@@ -1175,121 +647,44 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, ...){
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
-      object <- kproto(x = data, k = q, ...)
-      if(is.na(indices[length(object$size) == names(indices)])){
-        indices[length(object$size) == names(indices)] <- silhouette_kproto(object = object)
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = silhouette_kproto(object = object), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
+      object <- kproto(x = data, k = q, keep.data = TRUE, ...)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = silhouette_kproto(object = object), 
+                                          "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- silhouette_kproto(object = object)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
+        }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices, decreasing = TRUE)[1]))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
     
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == max(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
   }
 }
 
 
-
-
-#' @title Validating k Prototypes Clustering: Tau index
-#'
-#' @description Calculating the Tau index for a k-Prototypes clustering with k clusters or 
-#' computing the optimal number of clusters based on the Tau index for k-Prototype clustering.
-#' 
-#' @details \deqn{Tau = \frac{s(+) - s(-)}{((\frac{N_t(N_t-1)}{2}-t)\frac{N_t(N_t-1)}{2})^{0.5}}} \cr 
-#' Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
-#' \eqn{s(+)} is the number of concordant comparisons and \eqn{s(-)} is the number of discordant comparisons.
-#' A comparison is named concordant (resp. discordant) if a within-cluster dissimilarity is strictly less 
-#' (resp. strictly greater) than a between-cluster dissimilarity.\cr
-#' \eqn{N_t} is the total number of distances \eqn{\frac{n(n-1)}{2}} and \eqn{t} is the number of comparisons 
-#' of two pairs of objects where both pairs represent within-cluster comparisons or both pairs are between-cluster
-#' comparisons. \cr
-#' The maximum value of the index is used to indicate the optimal number of clusters.
-#' 
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL}.
-#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL}.
-#' @param dists for internal purposes only
-#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
-#'   \itemize{
-#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#'   }
-#'
-#' @return For computing the optimal number of clusters based on the Tau index for k-Prototype clustering the output contains:
-#' @return \item{k_opt}{optimal number of clusters}
-#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
-#' @return For computing the Tau index-value for a given k-Prototype clustering the output contains:
-#' @return \item{index}{calculated index-value}
-#'
-#' @references \itemize{
-#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
-#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
-#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{Journal of Statistical Software, Vol 61, Issue 6}}.
-#'   }
-#'
-#' @seealso Other clustervalidation indices: \code{\link[clustMixType]{dunn_kproto}},
-#' \code{\link[clustMixType]{dunn_kproto}}, \code{\link[clustMixType]{gamma_kproto}},
-#' \code{\link[clustMixType]{gplus_kproto}}, \code{\link[clustMixType]{mcclain_kproto}},
-#' \code{\link[clustMixType]{ptbiserial_kproto}}, \code{\link[clustMixType]{silhouette_kproto}}
-#' 
-#' @examples
-#' # generate toy data with factors and numerics
-#' 
-#' n   <- 10
-#' prb <- 0.99
-#' muk <- 2.5
-#' 
-#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x1 <- as.factor(x1)
-#' 
-#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
-#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
-#' x2 <- as.factor(x2)
-#' 
-#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
-#' 
-#' x <- data.frame(x1,x2,x3,x4)
-#' 
-#' # apply k prototyps
-#' kpres <- kproto(x, 4, keep.data=TRUE)
-#' 
-#' # calculate index-value
-#' tau_value <- tau_kproto(object = kpres)
-#' 
-#' # calculate optimal number of cluster
-#' k_opt <- tau_kproto(data = x, k = 3:5, nstart = 5, verbose = FALSE)
-#' 
-#' @author Rabea Aschenbruck
-#' 
-#' @rdname tau_kproto
-#' @importFrom stats na.omit
-#' @importFrom utils combn
-#' 
-#' @export
-tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...){
-  
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
-  
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("For clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
-  }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
-  }
+tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", ...){
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
@@ -1352,18 +747,39 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...){
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
-    indices <- rep(NA,length(k))
-    names(indices) <- k
-    for(q in k){
-      object <- kproto(x = data, k = q, ...)
-      if(is.na(indices[length(object$size) == names(indices)])){
-        indices[length(object$size) == names(indices)] <- tau_kproto(object = object, dists = dists)
+    #calculate all kproto objects for k
+    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    trace_kp <- list(list("index" = tau_kproto(object = object, dists = dists), 
+                          "k" = length(object$size), "object" = object))
+    for(q in k[-1]){
+      object <- kproto(x = data, k = q, keep.data = TRUE, ...)
+      #save kproto object, if there isn't an object for this number of cluster
+      if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
+        trace_kp <- c(trace_kp, list(list("index" = tau_kproto(object = object, dists = dists), 
+                                          "k" = length(object$size), "object" = object)))
+      }else{
+        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
+        index_value <- tau_kproto(object = object, dists = dists)
+        if(trace_kp[[which(unlist(lapply(trace_kp, `[[`, 2)) == 2)]]$index != index_value){
+          trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
+        }
       }
     }
     
-    k_opt <- as.numeric(names(sort(indices, decreasing = TRUE)[1]))
+    # save all index values for comparison and as summary for output
+    indices <- unlist(lapply(trace_kp, `[[`, 1))
+    names(indices) <- lapply(trace_kp, `[[`, 2)
     
-    return(list("k_opt" = k_opt, "indices" = indices))
+    # find the optimal k, if it is ambiguously: sample
+    k_m <- which(indices == max(indices))
+    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    k_opt <- as.integer(names(indices[k_m]))
+    index_opt <- indices[k_m]
+    
+    output <- switch(kp_obj,
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+    return(output)
   }
 }
 
@@ -1372,8 +788,166 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, ...){
 
 
 
-
-
+#' @title Validating k Prototypes Clustering
+#'
+#' @description Calculating the prefered validation index for a k-Prototypes clustering with k clusters or computing the optimal number of clusters based on the choosen index for k-Prototype clustering. Possible validation indices are: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} and \code{tau}.
+#' 
+#' @param method character specifying the validation index: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} or \code{tau}.
+#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
+#' @param data Original data; only required if \code{object == NULL} and neglected if \code{object != NULL}.
+#' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL} and neglected if \code{object != NULL}.
+#' @param kp_obj character either "optimal" or "all": Output of the index-optimal clustering (kp_obj == "optimal") or all computed clusterpartitions (kp_obj == "all"); only required if \code{object != NULL}.
+#' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
+#'   \itemize{
+#'     \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
+#'     \item \code{lambda}: Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
+#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
+#'   }
+#' 
+#' @details More information about the implemented validation indices:
+#'   \itemize{
+#'     \item{\code{cindex}} {\deqn{Cindex = \frac{S_w-S_{min}}{S_{max}-S_{min}}} \cr
+#' For \eqn{S_{min}} and \eqn{S_{max}} it is nessesary to calculate the distances between all pairs of points in the entire data set (\eqn{\frac{n(n-1)}{2}}). 
+#' \eqn{S_{min}} is the sum of the "total number of pairs of objects belonging to the same cluster" smallest distances and 
+#' \eqn{S_{max}} is the sum of the "total number of pairs of objects belonging to the same cluster" largest distances. \eqn{S_w} is the sum of the within-cluster distances. \cr
+#' The minimum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'     \item{\code{dunn}}{\deqn{Dunn = \frac{\min_{1 \leq i < j \leq q} d(C_i, C_j)}{\max_{1 \leq k \leq q} diam(C_k)}} \cr
+#' The following applies: The dissimilarity between the two clusters \eqn{C_i} and \eqn{C_j} is defined as \eqn{d(C_i, C_j)=\min_{x \in C_i, y \in C_j} d(x,y)} and
+#' the diameter of a cluster is defined as \eqn{diam(C_k)=\max_{x,y \in C} d(x,y)}. \cr
+#' The maximum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'     \item{\code{gamma}}{\deqn{Gamma = \frac{s(+)-s(-)}{s(+)+s(-)}} \cr 
+#' Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
+#' \eqn{s(+)} is the number of concordant comparisons and \eqn{s(-)} is the number of discordant comparisons.
+#' A comparison is named concordant (resp. discordant) if a within-cluster dissimilarity is strictly less (resp. strictly greater) than a between-cluster dissimilarity.\cr
+#' The maximum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'     \item{\code{gplus}}{\deqn{Gplus = \frac{2 \cdot s(-)}{\frac{n(n-1)}{2} \cdot (\frac{n(n-1)}{2}-1)}} \cr 
+#' Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
+#' \eqn{s(-)} is the number of discordant comparisons and a comparison is named discordant if a within-cluster 
+#' dissimilarity is strictly greater than a between-cluster dissimilarity. \cr
+#' The minimum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'     \item{\code{mcclain}}{\deqn{McClain = \frac{\bar{S}_w}{\bar{S}_b}} \cr 
+#' \eqn{\bar{S}_w} is the sum of within-cluster distances divided by the number of within-cluster distances and 
+#' \eqn{\bar{S}_b} is the sum of between-cluster distances divided by the number of between-cluster distances.\cr
+#' The minimum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'     \item{\code{ptbiserial}}{\deqn{Ptbiserial = \frac{(\bar{S}_b-\bar{S}_w) \cdot (\frac{N_w \cdot N_b}{N_t^2})^{0.5}}{s_d}} \cr 
+#' \eqn{\bar{S}_w} is the sum of within-cluster distances divided by the number of within-cluster distances and 
+#' \eqn{\bar{S}_b} is the sum of between-cluster distances divided by the number of between-cluster distances.\cr
+#' \eqn{N_t} is the total number of pairs of objects in the data, \eqn{N_w} is the total number of pairs of 
+#' objects belonging to the samecluster and \eqn{N_b} is the total number of pairs of objects belonging to different clusters.
+#' \eqn{s_d} is the standard deviation of all distances.\cr
+#' The maximum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'     \item{\code{silhouette}}{\deqn{Silhouette = \frac{1}{n} \sum_{i=1}^n \frac{b(i)-a(i)}{max(a(i),b(i))}} \cr 
+#' \eqn{a(i)} is the average dissimilarity of the i\emph{th} object to all other objects of the same/own cluster.
+#' \eqn{b(i)=min(d(i,C))}, where \eqn{d(i,C)} is the average dissimilarity of the i\emph{th} object to all the other clusters except the own/same cluster.\cr
+#' The maximum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'     \item{\code{tau}}{\deqn{Tau = \frac{s(+) - s(-)}{((\frac{N_t(N_t-1)}{2}-t)\frac{N_t(N_t-1)}{2})^{0.5}}} \cr 
+#' Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
+#' \eqn{s(+)} is the number of concordant comparisons and \eqn{s(-)} is the number of discordant comparisons.
+#' A comparison is named concordant (resp. discordant) if a within-cluster dissimilarity is strictly less 
+#' (resp. strictly greater) than a between-cluster dissimilarity.\cr
+#' \eqn{N_t} is the total number of distances \eqn{\frac{n(n-1)}{2}} and \eqn{t} is the number of comparisons 
+#' of two pairs of objects where both pairs represent within-cluster comparisons or both pairs are between-cluster
+#' comparisons. \cr
+#' The maximum value of the index is used to indicate the optimal number of clusters.
+#'     }
+#'   }
+#' 
+#' @return For computing the optimal number of clusters based on the choosen validation index for k-Prototype clustering the output contains:
+#' @return \item{k_opt}{optimal number of clusters (sampled in case of ambiguity)}
+#' @return \item{index_opt}{index value of the index optimal clustering}
+#' @return \item{indices}{calculated indices for \eqn{k=2,...,k_{max}}}
+#' @return \item{kp_obj}{if(kp_obj == "optimal") the kproto object of the index optimal clustering and if(kp_obj == "all") all kproto which were calculated}
+#' @return For computing the index-value for a given k-Prototype clustering the output contains:
+#' @return \item{index}{calculated index-value}
+#'
+#' @author Rabea Aschenbruck
+#' 
+#' @references \itemize{
+#'     \item Charrad, M., Ghazzali, N., Boiteau, V., Niknafs, A. (2014): 
+#'     NbClust: An R Package for Determining the Relevant Number of Clusters in a Data Set. 
+#'     \emph{Journal of Statistical Software, Vol 61, Issue 6}.
+#'     \href{http://www.jstatsoft.org/v61/i06/}{\emph{www.jstatsoft.org}}.
+#'   }
+#'
+#' @examples
+#' # generate toy data with factors and numerics
+#' n   <- 10
+#' prb <- 0.99
+#' muk <- 2.5 
+#' 
+#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+#' x1 <- as.factor(x1)
+#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+#' x2 <- as.factor(x2)
+#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
+#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
+#' x <- data.frame(x1,x2,x3,x4)
+#' 
+#' 
+#' # calculate optimal number of cluster, index values and clusterpartition with Silhouette-index
+#' val <- validation_kproto(method = "silhouette", data = x, k = 3:5, nstart = 5)
+#' 
+#' 
+#' # apply k-prototypes
+#' kpres <- kproto(x, 4, keep.data = TRUE)
+#' 
+#' # calculate cindex-value for the given clusterpartition
+#' cindex_value <- validation_kproto(method = "cindex", object = kpres)
+#' 
+#' @rdname validation_kproto
+#' 
+#' @importFrom stats na.omit
+#' @importFrom utils combn
+#' @importFrom utils head
+#' @importFrom utils tail
+#' 
+#' 
+#' @export
+validation_kproto <- function(method = NULL, object = NULL, data = NULL, k = NULL, kp_obj = "optimal", ...){
+  
+  if(is.null(method)) stop("validation methode must be choosen!")
+  if(!(method %in% c("cindex", "dunn", "gamma", "gplus", "mcclain", "ptbiserial", "silhouette", "tau"))) stop("choose one of these methods: cindex, dunn, gamma, gplus, mcclain, ptbiserial, silhouette, tau")
+  
+  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
+  
+  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
+  if(!is.null(data) && ncol(data) < 2) stop("for clustering data should contain at least two variables!")
+  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
+  
+  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
+  
+  if(!is.null(k) && length(k) == 1){
+    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
+  }
+  if(length(k) > 1){
+    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
+    if(any(k < 1) | any(k > nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
+    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
+  }
+  
+  if(!(kp_obj %in% c("optimal","all"))) stop("kp_obj must either be optimal or all!")
+  
+  output <- switch(method,
+                   "cindex" = cindex_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...),
+                   "dunn" = dunn_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...),
+                   "gamma" = gamma_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...),
+                   "gplus" = gplus_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...),
+                   "mcclain" = mcclain_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...),
+                   "ptbiserial" = ptbiserial_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...),
+                   "silhouette" = silhouette_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...),
+                   "tau" = tau_kproto(object = object, data = data, k = k, kp_obj = kp_obj, ...))
+  
+  return(output)
+}
 
 
 

@@ -7,8 +7,17 @@
 \usage{
 kproto(x, ...)
 
-\method{kproto}{default}(x, k, lambda = NULL, iter.max = 100,
-  nstart = 1, na.rm = TRUE, keep.data = TRUE, verbose = TRUE, ...)
+\method{kproto}{default}(
+  x,
+  k,
+  lambda = NULL,
+  iter.max = 100,
+  nstart = 1,
+  na.rm = TRUE,
+  keep.data = TRUE,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{Data frame with both numerics and factors.}

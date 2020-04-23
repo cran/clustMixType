@@ -98,5 +98,9 @@ test_that("message for NAs.",{
   expect_warning(kproto(x4, 4, na.rm = FALSE),"No meaningful cluster assignment possible for observations where all variables NA.")}
 )
 
-
-
+prototypes <- data.frame(V1 = factor(c("A","B")), V2 = c(-3,3)) 
+x5 <- data.frame(V1 = factor(c(rep("A",10),rep("B",10))), V2 = c(rep(-3, 5), rep(-5, 5), rep(NA, 10))) 
+kpres <- kproto(x = x5, k = prototypes, na.rm = FALSE)
+test_that("handling all NAs in variable in a cluster.",{
+  expect_equal(kpres$centers[2,2], prototypes[2,2])}
+)

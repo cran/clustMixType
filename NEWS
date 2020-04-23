@@ -1,0 +1,82 @@
+
+clustMixType_0.2-5  2020-04-22  - fix output for validation indices: k_opt (integer) and index_opt (numeric) instead of named numeric k_opt 
+clustMixType_0.2-4  2020-04-16  - bug fix ln. 165f 
+				- assign cluster NA to obs. with NAs in all variables
+				- l. 287 & 330 only update prototypes for variables where not all values are NA
+clustMixType_0.2-3  2020-03-23  - implemented wrapper validation-index-functions 
+				- in validation_kproto: added argument kp_obj=c("optimal","all") if output should contain only optimal kproto-object or all calculated kproto-objects
+				- in validation_kproto: explanation added in help for situation object!=NULL & data!=NULL 
+				- this NEWS file added
+clustMixType_0.2-2  2020-03-03  - initial prototypes without NAs
+				- bug fix: sample in case of multiple minima (which(x==min()) instead of which.min(x))
+				- bug fix: pass na.rm for nstart > 1
+				- Example of ValIndices: added kproto(?, keep.data=TRUE) and fix k_{max} instead of k_max
+				- hexbin added via usethis::use_logo("C:/R/contribs/clustMixType.png")
+clustMixType_0.2-1  2019-02-25  - validation indices added (cindex, dunn, gamma, gplus, mcclain, ptbiserial, silhouette, tau)
+				- Bugfix (case k=1: line 229, following the check for equal cluster; line 285: following the check for empty cluster)
+				- changing the meaning of verbose and adding some information-outputs
+				- Simplification of the code-structure (line 211ff early check for equal clusters; line 314ff final update of prototypes and dists)
+				- Bugfix (occurrence of equal prototypes in last iteration: line 288)
+				- remove non-sense rownames of protos: line 345
+                                - citation file added
+								
+clustMixType_0.1-36 2018-09-01  - testthat error for R3.5.1 and vector valued lambda: as.matrix() added (ln.207/211/250/256/409/415) 
+clustMixType_0.1-35 2018-08-31  - Several cat() statements changed into messages (ln. 127, 229)
+				- verbose argument added (prevents counting of NAs)
+				- stop for data frame with numerics/factors only + reference to kmeans()/kmodes() (ln.114f.)
+				- warning added for obs. with all variables NA if na.rm = FALSE (ln. 132ff)
+				- Update .Rd some typos / reformulations.
+clustMixType_0.1-34 2018-06-22  - Bugfix (non-scalar k) for NAs / additional checks on k / (row.)names for result added
+				- Error check nrow(x) < k moved from ln.127 to ln. 152/158/169 (k be integer, vector or data frame)
+                                - Warning added in ln.151 for case k no integer.  
+				- ln.156: Error check: k < 1
+				- ln.307: names(clusters) <- row.names(dists) <- row.names(x) in case of na.rm=T
+                                - roxygen code changed from Rd summary.kproto into summary (R CMD check NOTE)
+clustMixType_0.1-33 2018-06-17  - Bugfixes for NA extension:
+				- ln.117-120: block with check for NAs moved before NA exclusions	
+                                - ln.271: missing na.rm=TRUE added   
+clustMixType_0.1-32 2018-06-08  - handling of NAs (based on version clustMixType_0.1-30):
+				- argument na.rm added	
+				- ln.111ff: rows with NAs deleted + message and error check
+				- vnum/vcat: (ln.128) & lamndaest (ln.564ff)  na.rm=T, (ln.128) length(z) by sum(!is.na(z))
+				- protos for k==1: (ln.175) na.rm=T
+				- d1: (ln.180 k==1, 224 k>1, 388 predict) rowSums(d1, na.rm=T)
+				- d2: (ln.184, 229, 309) d2[is.na(d2)] <- FALSE # instead of rowSums(d2, na.rm=T)
+
+*** [clustMixType_0.1-31        ...version skipped (tests on potential Rcpp integration ...postponed)] ***
+
+clustMixType_0.1-30  2017-11-02  kproto(): bugfixes ln.122: anyfact instead of anycat
+				 ln.110 k_input <- k and call for nstart > 1 with k = i_input at ln.292 in case of merged clusters.  
+clustMixType_0.1-29  2017-10-15  clprofiles(): par(ask=FALSE) added in ln.473
+				 clprofiles(): colours for k<3 fixed
+clustMixType_0.1-28  2017-09-04  summary.kproto(): correct cluster IDs in summary tables for numeric variables.
+clustMixType_0.1-27  2017-08-30  bugfix kproto after merge of empty clusters (ln.245-251, mail R.Aschenbruck -- error occurred in subsequent check for equal prototypes)
+clustMixType_0.1-26  2017-08-30  clprofiles(): col argument added (-> fix colors in bars and boxes), 
+				 lambdaest(): num.method and fac.method added (-> sd instead of var according tu huang's 97 paper), thx for feedback added as a comment in *.R
+clustMixType_0.1-25  2017-08-16  minor changes in examples .Rd files lambdaest() and summary.kproto() (wrong cluster number k)
+clustMixType_0.1-24  2017-08-16  summary.kproto() added; keep.data argument added to kproto()
+clustMixType_0.1-23  2017-08-15  lambdaest extension: outtype argument; check: at least one lambda > 0 (ln.92)
+clustMixType_0.1-22  2017-07-27  Note R CMD check --as-cran fixed: hidden *.Rhistory file removed from folder
+clustMixType_0.1-21  2017-07-27  method = 2 added to lambdaest(); bugfix: error check on length(lambda) moved from ln. 91 ~> ln.101 
+clustMixType_0.1-20  2017-07-17  allow vor variable specific vector valued lambdas (...if(length(lambda) > 1) d2 <- d2 %*% lambda[catvars])
+clustMixType_0.1-19  2017-07-17  extension for k=1: special case, ln.147 ; initialization of clusters/... moved before check for equal prototypes (ln.141) 
+clustMixType_0.1-18  2017-07-17  k of type data frame added; rm(ids) moved upwards in !is.data.frame(k){}
+clustMixType_0.1-17  2016-11-10  Bugfix for single categorical/numeric variables (several dimension drop = FALSE added).
+clustMixType_0.1-16  2016-02-27  DOI added for CRAN submission.
+clustMixType_0.1-15              
+clustMixType_0.1-14  2016-02-26  Rename of package.
+
+######### Changelog of former package up to rename into clustMixedType.
+kprototypes_0.1-13  2016-02-26  Several importForm ob base packages added accordimg to chges in CRAN policy. 
+kprototypes_0.1-12  2016-02-25  Reference changed. 
+				roxygen code for export changed (* checking S3 generic/method consistency ... NOTE Found the following apparent S3 methods exported but not registered: kproto.default)
+kprototypes_0.1-11  2015-01-26  Speedup of kproto() also added to predict.kproto().
+kprototypes_0.1-10  2015-01-26  Slight adaption of clprofiles() (clusids <- ) to kmeans like objects. Examples replaced by more explicative artificial ones.
+kprototypes_0.1-9   2014-11-30	Bugfix: currentyl 2 versins of print.kproto() ~> one removed & no assignment of class kproto.    
+kprototypes_0.1-8   2014-11-27	Description file changed several times according to B.Ripley's reco.   
+...
+kprototypes_0.1-5   2014-11-24	print.kproto() function added for conveniance.   
+kprototypes_0.1-4   2014-11-23	lambdaest() for constant only; stop() for 1D data frames added.   
+kprototypes_0.1-3   2014-11-22	speed up kprotos() (by ca. factor 100) in dist calculation (~ln. 130-140)  
+kprototypes_0.1-2   2014-09-23	rename profile() into clprofiles()  
+kprototypes_0.1-1   2014-09-23	first built     

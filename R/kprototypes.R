@@ -162,8 +162,6 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
       if(as.integer(k) != k){k <- as.integer(k); warning(paste("k has been set to", k,"!"))}
       if(sum(complete.cases(x)) < k) stop("Data frame has less complete observations than clusters!")
       ids <- sample(row.names(x[complete.cases(x),]), k)
-      if(nrow(x) < k) stop("Data frame has less observations than clusters!")
-      ids <- sample(nrow(x), k)
       protos <- x[ids,]
     }
     if (length(k) > 1){
@@ -289,8 +287,13 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
     # compute new prototypes
     remids <- as.integer(names(size))
     for(i in remids){
-      protos[which(remids == i), numvars] <- sapply(x[clusters==i, numvars, drop = FALSE], mean, na.rm = TRUE)
-      protos[which(remids == i), catvars] <- sapply(x[clusters==i, catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+      some_vals <- sapply(x[clusters == i, , drop = FALSE], function(z) !all(is.na(z))) # only update variables if not all values are NA
+      if(any(some_vals & numvars)){
+        protos[which(remids == i), some_vals & numvars] <- sapply(x[clusters == i, some_vals & numvars, drop = FALSE], mean, na.rm = TRUE)
+      }
+      if(any(some_vals & catvars)){
+        protos[which(remids == i), some_vals & catvars] <- sapply(x[clusters == i, some_vals & catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+      }
     }
     
     if(k == 1){clusters <- rep(1, length(clusters)); size <- table(clusters); iter <- iter.max; break}
@@ -327,8 +330,13 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
     # compute new prototypes
     remids <- as.integer(names(size))
     for(i in remids){
-      protos[which(remids == i), numvars] <- sapply(x[clusters==i, numvars, drop = FALSE], mean, na.rm = TRUE)
-      protos[which(remids == i), catvars] <- sapply(x[clusters==i, catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+      some_vals <- sapply(x[clusters == i, , drop = FALSE], function(z) !all(is.na(z))) # only update variables if not all values are NA
+      if(any(some_vals & numvars)){
+        protos[which(remids == i), some_vals & numvars] <- sapply(x[clusters == i, some_vals & numvars, drop = FALSE], mean, na.rm = TRUE)
+      }
+      if(any(some_vals & catvars)){
+        protos[which(remids == i), some_vals & catvars] <- sapply(x[clusters == i, some_vals & catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+      }
     }
     
     # compute distances 
@@ -351,6 +359,12 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
     tot.within    <- sum(within)
   }
   
+  if(na.rm == FALSE){
+    if(sum(allNAs) > 0){
+      clusters[allNAs] <- NA
+      dists[allNAs,] <- NA
+    }
+  }
 
   names(clusters) <- row.names(dists) <- row.names(x)
   rownames(protos) <- NULL
