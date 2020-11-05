@@ -1,4 +1,10 @@
-
+clustMixType_0.2-9  2020-11-04  - update error-messages, if index calculation with k = 1 cluster or an kproto-object with only one cluster.
+clustMixType_0.2-8  2020-11-02  - personalized lambda input with validation_kproto added
+clustMixType_0.2-7  2020-06-11  - tibble import added to namespace (ln.107 kprototypes.R) and description 
+clustMixType_0.2-6  2020-05-29  (not built --> v0.2-7)
+				- enable input of tibbles
+                                - fix par(ask="FALSE") into par(ask=FALSE)
+                                - check done: no impact of NAs in predict or clprofiles
 clustMixType_0.2-5  2020-04-22  - fix output for validation indices: k_opt (integer) and index_opt (numeric) instead of named numeric k_opt 
 clustMixType_0.2-4  2020-04-16  - bug fix ln. 165f 
 				- assign cluster NA to obs. with NAs in all variables
