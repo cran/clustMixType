@@ -1,29 +1,31 @@
+clustMixType_0.2-11 2021-03-09  - \href to \doi changed according to rwinbuilder check note for R devel.
+clustMixType_0.2-10 2021-03-01  - bug fix: save kproto object if there is a clusterpartition with same number of cluster but different validation index; comparison of several indices of same size clusters possible
 clustMixType_0.2-9  2020-11-04  - update error-messages, if index calculation with k = 1 cluster or an kproto-object with only one cluster.
 clustMixType_0.2-8  2020-11-02  - personalized lambda input with validation_kproto added
 clustMixType_0.2-7  2020-06-11  - tibble import added to namespace (ln.107 kprototypes.R) and description 
 clustMixType_0.2-6  2020-05-29  (not built --> v0.2-7)
-				- enable input of tibbles
+				                        - enable input of tibbles
                                 - fix par(ask="FALSE") into par(ask=FALSE)
                                 - check done: no impact of NAs in predict or clprofiles
 clustMixType_0.2-5  2020-04-22  - fix output for validation indices: k_opt (integer) and index_opt (numeric) instead of named numeric k_opt 
 clustMixType_0.2-4  2020-04-16  - bug fix ln. 165f 
-				- assign cluster NA to obs. with NAs in all variables
-				- l. 287 & 330 only update prototypes for variables where not all values are NA
+				                        - assign cluster NA to obs. with NAs in all variables
+			                        	- l. 287 & 330 only update prototypes for variables where not all values are NA
 clustMixType_0.2-3  2020-03-23  - implemented wrapper validation-index-functions 
-				- in validation_kproto: added argument kp_obj=c("optimal","all") if output should contain only optimal kproto-object or all calculated kproto-objects
-				- in validation_kproto: explanation added in help for situation object!=NULL & data!=NULL 
-				- this NEWS file added
+				                        - in validation_kproto: added argument kp_obj=c("optimal","all") if output should contain only optimal kproto-object or all calculated kproto-objects
+				                        - in validation_kproto: explanation added in help for situation object!=NULL & data!=NULL 
+				                        - this NEWS file added
 clustMixType_0.2-2  2020-03-03  - initial prototypes without NAs
-				- bug fix: sample in case of multiple minima (which(x==min()) instead of which.min(x))
-				- bug fix: pass na.rm for nstart > 1
-				- Example of ValIndices: added kproto(?, keep.data=TRUE) and fix k_{max} instead of k_max
-				- hexbin added via usethis::use_logo("C:/R/contribs/clustMixType.png")
+				                        - bug fix: sample in case of multiple minima (which(x==min()) instead of which.min(x))
+				                        - bug fix: pass na.rm for nstart > 1
+				                        - Example of ValIndices: added kproto(?, keep.data=TRUE) and fix k_{max} instead of k_max
+				                        - hexbin added via usethis::use_logo("C:/R/contribs/clustMixType.png")
 clustMixType_0.2-1  2019-02-25  - validation indices added (cindex, dunn, gamma, gplus, mcclain, ptbiserial, silhouette, tau)
-				- Bugfix (case k=1: line 229, following the check for equal cluster; line 285: following the check for empty cluster)
-				- changing the meaning of verbose and adding some information-outputs
-				- Simplification of the code-structure (line 211ff early check for equal clusters; line 314ff final update of prototypes and dists)
-				- Bugfix (occurrence of equal prototypes in last iteration: line 288)
-				- remove non-sense rownames of protos: line 345
+				                        - Bugfix (case k=1: line 229, following the check for equal cluster; line 285: following the check for empty cluster)
+				                        - changing the meaning of verbose and adding some information-outputs
+				                        - Simplification of the code-structure (line 211ff early check for equal clusters; line 314ff final update of prototypes and dists)
+				                        - Bugfix (occurrence of equal prototypes in last iteration: line 288)
+				                        - remove non-sense rownames of protos: line 345
                                 - citation file added
 								
 clustMixType_0.1-36 2018-09-01  - testthat error for R3.5.1 and vector valued lambda: as.matrix() added (ln.207/211/250/256/409/415) 

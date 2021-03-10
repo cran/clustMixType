@@ -1,4 +1,4 @@
-context("Basic tests - clustervalidation.\n")
+context("clustervalidation - basic tests.\n")
 
 library(clustMixType)
 
@@ -29,27 +29,27 @@ kpres_1 <- kproto.default(x, 1, keep.data = FALSE, verbose = FALSE)
 
 
 test_that("checking input objects",{
-  expect_error(validation_kproto(method = "other index", object = 2))
-  expect_error(validation_kproto(method = "cindex", object = 2))
-  expect_error(validation_kproto(method = "cindex", object = kpres, k = 4))
-  expect_error(validation_kproto(method = "cindex", data = NULL))
-  expect_error(validation_kproto(method = "cindex", data = data.frame("a" = 2,"b" = 2)))
-  expect_error(validation_kproto(method = "cindex", data = data.frame("a" = c(2, 2))))
-  expect_error(validation_kproto(method = "cindex", data = x, k = -1:3))
-  expect_error(validation_kproto(method = "cindex", data = x, k = 5:43))
-  expect_error(validation_kproto(method = "cindex", data = NULL, object = kpres_w))
-  expect_error(validation_kproto(method = "cindex", data = NULL, object = kpres_1))
-  expect_error(validation_kproto(method = "cindex", data = x, k = 1))
-  expect_error(validation_kproto(method = "cindex", data = x, k = 1:3))
+  expect_error(validation_kproto(method = "other index", object = 2, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", object = 2, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", object = kpres, k = 4, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = NULL, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = data.frame("a" = 2,"b" = 2), verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = data.frame("a" = c(2, 2)), verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = x, k = -1:3, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = x, k = 5:43, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = NULL, object = kpres_w, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = NULL, object = kpres_1, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = x, k = 1, verbose = FALSE))
+  expect_error(validation_kproto(method = "cindex", data = x, k = 1:3, verbose = FALSE))
 }
 )
 
 
-
-iv_cindex  <- validation_kproto(method = "cindex", object = kpres)
-ivk_cindex <- validation_kproto(method = "cindex", data = x, k = c(3:5))
+context("clustervalidation - cindex.\n")
+iv_cindex  <- validation_kproto(method = "cindex", object = kpres, verbose = FALSE)
+ivk_cindex <- validation_kproto(method = "cindex", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_cindex <- validation_kproto(method = "cindex", object = NULL, data = x, k = c(3:5), 
-                                  kp_obj = 'optimal', lambda = 2)
+                                  kp_obj = 'optimal', lambda = 2, verbose = FALSE)
 test_that("resulting objects based on cindex are as expected",{
   
   expect_is(iv_cindex, "numeric")
@@ -70,7 +70,7 @@ test_that("resulting objects based on cindex are as expected",{
 )
 
 
-
+context("clustervalidation - dunn.\n")
 iv_dunn  <- validation_kproto(method = "dunn", object = kpres, verbose = FALSE)
 ivk_dunn <- validation_kproto(method = "dunn", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_dunn <- validation_kproto(method = "dunn", object = NULL, data = x, k = c(3:5), 
@@ -94,7 +94,7 @@ test_that("resulting objects based on dunn index are as expected",{
 )
 
 
-
+context("clustervalidation - gamma.\n")
 iv_gamma  <- validation_kproto(method = "gamma", object = kpres, verbose = FALSE)
 ivk_gamma <- validation_kproto(method = "gamma", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_gamma <- validation_kproto(method = "gamma", object = NULL, data = x, k = c(3:5), 
@@ -119,7 +119,7 @@ test_that("resulting objects based on gamma index are as expected",{
 )
 
 
-
+context("clustervalidation - gplus.\n")
 iv_gplus  <- validation_kproto(method = "gplus", object = kpres, verbose = FALSE)
 ivk_gplus <- validation_kproto(method = "gplus", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_gplus <- validation_kproto(method = "gplus", object = NULL, data = x, k = c(3:5), 
@@ -144,7 +144,7 @@ test_that("resulting objects based on gplus index are as expected",{
 )
 
 
-
+context("clustervalidation - mcclain.\n")
 iv_mcclain  <- validation_kproto(method = "mcclain", object = kpres, verbose = FALSE)
 ivk_mcclain <- validation_kproto(method = "mcclain", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_mcclain <- validation_kproto(method = "mcclain", object = NULL, data = x, k = c(3:5), 
@@ -168,7 +168,7 @@ test_that("resulting objects based on mcclain index are as expected",{
 )
 
 
-
+context("clustervalidation - ptbiserial.\n")
 iv_ptbiserial  <- validation_kproto(method = "ptbiserial", object = kpres, verbose = FALSE)
 ivk_ptbiserial <- validation_kproto(method = "ptbiserial", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_ptbiserial <- validation_kproto(method = "ptbiserial", object = NULL, data = x, k = c(3:5), 
@@ -191,7 +191,7 @@ test_that("resulting objects based on ptbiserial index are as expected",{
 )
 
 
-
+context("clustervalidation - silhouette.\n")
 iv_silhouette  <- validation_kproto(method = "silhouette", object = kpres, verbose = FALSE)
 ivk_silhouette <- validation_kproto(method = "silhouette", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_silhouette <- validation_kproto(method = "silhouette", object = NULL, data = x, k = c(3:5), 
@@ -216,7 +216,7 @@ test_that("resulting objects based on silhouette index are as expected",{
 )
 
 
-
+context("clustervalidation - tau.\n")
 iv_tau  <- validation_kproto(method = "tau", object = kpres, verbose = FALSE)
 ivk_tau <- validation_kproto(method = "tau", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_tau <- validation_kproto(method = "tau", object = NULL, data = x, k = c(3:5), 
