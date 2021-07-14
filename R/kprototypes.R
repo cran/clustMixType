@@ -119,7 +119,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
   if(iter.max < 1 | nstart < 1) stop("iter.max and nstart must not be specified < 1!")
   if(!is.null(lambda)){
     if(any(lambda < 0)) stop("lambda must be specified >= 0!")
-    if(!any(lambda > 0)) stop("lambda must be specified > 0 for at least one variable!")
+    if(!any(lambda > 0)) stop("lambda must be specified > 0 for at least two variable!")
     }
   # check for numeric and factor variables
   numvars <- sapply(x, is.numeric)
@@ -193,7 +193,14 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
   if(k < 1) stop("Number of clusters k must not be smaller than 1!")
   
   # automatic calculation of lambda
-  if(length(lambda) > 1) {if(length(lambda) != sum(c(numvars,catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")}
+  if(length(lambda) > 1){
+    if(length(lambda) != sum(c(numvars,catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")
+    # warning for variable selection via lambda (which results in no numvars or no catvars)
+    if(all(!as.logical(numvars*lambda))) warning("As a result of the choice of lambda: No numeric variables in x! Better try using kmodes() from package klaR...\n")
+    if(all(!as.logical(catvars*lambda))) warning("As a result of the choice of lambda: No factor variables in x! Better try using kmeans()...\n")
+  }else{
+    if(length(lambda) == 1) {if(lambda == 0) stop("lambda has to be a value != 0. For automatic calculation use lambda = NULL (default setting)!")}
+    }
   if(is.null(lambda)){
     if(anynum & anyfact){
       vnum <- mean(sapply(x[,numvars, drop = FALSE], var, na.rm = TRUE))
@@ -251,6 +258,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
       #a0 <- proc.time()[3]      
       #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
       d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+      d1[is.na(d1)] <- 0
       if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
       if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
       #a1 <- proc.time()[3]      

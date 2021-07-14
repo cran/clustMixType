@@ -1,3 +1,6 @@
+clustMixType_0.2-14 2021-07-14  - bug fix of bug fix (ln.202): check for lambda == 0 only if length(lambda) == 1 (otherwise error for is.null(lambda))  
+clustMixType_0.2-13 2021-07-09  - bug fix for special case of variable selection by lambda for no mixed-type data; validation_kproto will follows shortly
+clustMixType_0.2-12 2021-03-10  - after call with uwe also in validation_kproto.Rd \href changed in to \doi (...such that it will be changed with next CRAN submission).
 clustMixType_0.2-11 2021-03-09  - \href to \doi changed according to rwinbuilder check note for R devel.
 clustMixType_0.2-10 2021-03-01  - bug fix: save kproto object if there is a clusterpartition with same number of cluster but different validation index; comparison of several indices of same size clusters possible
 clustMixType_0.2-9  2020-11-04  - update error-messages, if index calculation with k = 1 cluster or an kproto-object with only one cluster.
