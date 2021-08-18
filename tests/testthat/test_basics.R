@@ -60,6 +60,9 @@ test_that("different ways of specifying lambda work properly",{
   expect_error(kproto(x, 4, lambda = c(0,0,0,0)))
   expect_error(kproto(x, 4, lambda = 0))
   expect_is(kproto(x, 4, lambda = c(0,0,0,1)), "kproto")
+  expect_is(kproto(x, 4, lambda = c(1,0,0,0)), "kproto")
+  expect_is(kproto(x, 4, lambda = c(0,0,1,1)), "kproto")
+  expect_is(kproto(x, 4, lambda = c(1,1,0,0)), "kproto")
 }
 )
 

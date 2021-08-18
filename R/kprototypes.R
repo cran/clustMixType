@@ -356,6 +356,7 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
     dists <- matrix(NA, nrow=nrows, ncol = k)
     for(i in 1:k){
       d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+      d1[is.na(d1)] <- 0
       if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
       if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
       d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )

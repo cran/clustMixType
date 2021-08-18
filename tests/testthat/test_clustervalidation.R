@@ -41,6 +41,7 @@ test_that("checking input objects",{
   expect_error(validation_kproto(method = "cindex", data = NULL, object = kpres_1, verbose = FALSE))
   expect_error(validation_kproto(method = "cindex", data = x, k = 1, verbose = FALSE))
   expect_error(validation_kproto(method = "cindex", data = x, k = 1:3, verbose = FALSE))
+  
 }
 )
 
@@ -50,6 +51,11 @@ iv_cindex  <- validation_kproto(method = "cindex", object = kpres, verbose = FAL
 ivk_cindex <- validation_kproto(method = "cindex", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_cindex <- validation_kproto(method = "cindex", object = NULL, data = x, k = c(3:5), 
                                   kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_cindex <- validation_kproto(method = "cindex", object = NULL, data = x, k = c(3:5), 
+                                  lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_cindex <- validation_kproto(method = "cindex", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on cindex are as expected",{
   
   expect_is(iv_cindex, "numeric")
@@ -66,6 +72,9 @@ test_that("resulting objects based on cindex are as expected",{
   expect_equal(ivk_cindex[[1]], as.integer(names(which.min(ivk_cindex[[3]]))))
   
   expect_equal(ivk_l_cindex$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_cindex) == 4)
+  expect_true(length(ivk_numvars_cindex) == 4)
 }
 )
 
@@ -75,6 +84,11 @@ iv_dunn  <- validation_kproto(method = "dunn", object = kpres, verbose = FALSE)
 ivk_dunn <- validation_kproto(method = "dunn", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_dunn <- validation_kproto(method = "dunn", object = NULL, data = x, k = c(3:5), 
                                   kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_dunn <- validation_kproto(method = "dunn", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_dunn <- validation_kproto(method = "dunn", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on dunn index are as expected",{
   
   expect_is(iv_dunn, "numeric")
@@ -90,6 +104,9 @@ test_that("resulting objects based on dunn index are as expected",{
   expect_equal(ivk_dunn[[1]], as.integer(names(which.max(ivk_dunn[[3]]))))
   
   expect_equal(ivk_l_dunn$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_dunn) >= 1)
+  expect_true(length(ivk_numvars_dunn) >= 1)
 }
 )
 
@@ -99,6 +116,11 @@ iv_gamma  <- validation_kproto(method = "gamma", object = kpres, verbose = FALSE
 ivk_gamma <- validation_kproto(method = "gamma", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_gamma <- validation_kproto(method = "gamma", object = NULL, data = x, k = c(3:5), 
                                 kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_gamma <- validation_kproto(method = "gamma", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_gamma <- validation_kproto(method = "gamma", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on gamma index are as expected",{
   
   expect_is(iv_gamma, "numeric")
@@ -115,6 +137,9 @@ test_that("resulting objects based on gamma index are as expected",{
   expect_equal(ivk_gamma[[1]], as.integer(names(which.max(ivk_gamma[[3]]))))
   
   expect_equal(ivk_l_gamma$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_gamma) == 4)
+  expect_true(length(ivk_numvars_gamma) == 4)
 }
 )
 
@@ -124,6 +149,11 @@ iv_gplus  <- validation_kproto(method = "gplus", object = kpres, verbose = FALSE
 ivk_gplus <- validation_kproto(method = "gplus", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_gplus <- validation_kproto(method = "gplus", object = NULL, data = x, k = c(3:5), 
                             kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_gplus <- validation_kproto(method = "gplus", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_gplus <- validation_kproto(method = "gplus", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on gplus index are as expected",{
   
   expect_is(iv_gplus, "numeric")
@@ -140,6 +170,9 @@ test_that("resulting objects based on gplus index are as expected",{
   expect_equal(ivk_gplus[[1]], as.integer(names(which.min(ivk_gplus[[3]]))))
   
   expect_equal(ivk_l_gplus$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_gplus) == 4)
+  expect_true(length(ivk_numvars_gplus) == 4)
 }
 )
 
@@ -149,6 +182,11 @@ iv_mcclain  <- validation_kproto(method = "mcclain", object = kpres, verbose = F
 ivk_mcclain <- validation_kproto(method = "mcclain", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_mcclain <- validation_kproto(method = "mcclain", object = NULL, data = x, k = c(3:5), 
                             kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_mcclain <- validation_kproto(method = "mcclain", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_mcclain <- validation_kproto(method = "mcclain", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on mcclain index are as expected",{
   
   expect_is(iv_mcclain, "numeric")
@@ -164,6 +202,9 @@ test_that("resulting objects based on mcclain index are as expected",{
   expect_equal(ivk_mcclain[[1]], as.integer(names(which.min(ivk_mcclain[[3]]))))
   
   expect_equal(ivk_l_mcclain$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_mcclain) == 4)
+  expect_true(length(ivk_numvars_mcclain) == 4)
 }
 )
 
@@ -173,6 +214,11 @@ iv_ptbiserial  <- validation_kproto(method = "ptbiserial", object = kpres, verbo
 ivk_ptbiserial <- validation_kproto(method = "ptbiserial", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_ptbiserial <- validation_kproto(method = "ptbiserial", object = NULL, data = x, k = c(3:5), 
                             kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_ptbiserial <- validation_kproto(method = "ptbiserial", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_ptbiserial <- validation_kproto(method = "ptbiserial", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on ptbiserial index are as expected",{
   
   expect_is(iv_ptbiserial, "numeric")
@@ -187,6 +233,9 @@ test_that("resulting objects based on ptbiserial index are as expected",{
   expect_equal(ivk_ptbiserial[[1]], as.integer(names(which.max(ivk_ptbiserial[[3]]))))
   
   expect_equal(ivk_l_ptbiserial$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_ptbiserial) == 4)
+  expect_true(length(ivk_numvars_ptbiserial) == 4)
 }
 )
 
@@ -196,6 +245,11 @@ iv_silhouette  <- validation_kproto(method = "silhouette", object = kpres, verbo
 ivk_silhouette <- validation_kproto(method = "silhouette", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_silhouette <- validation_kproto(method = "silhouette", object = NULL, data = x, k = c(3:5), 
                             kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_silhouette <- validation_kproto(method = "silhouette", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_silhouette <- validation_kproto(method = "silhouette", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on silhouette index are as expected",{
   
   expect_is(iv_silhouette, "numeric")
@@ -212,6 +266,9 @@ test_that("resulting objects based on silhouette index are as expected",{
   expect_equal(ivk_silhouette[[1]], as.integer(names(which.max(ivk_silhouette[[3]]))))
   
   expect_equal(ivk_l_silhouette$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_silhouette) == 4)
+  expect_true(length(ivk_numvars_silhouette) == 4)
 }
 )
 
@@ -221,6 +278,11 @@ iv_tau  <- validation_kproto(method = "tau", object = kpres, verbose = FALSE)
 ivk_tau <- validation_kproto(method = "tau", data = x, k = c(3:5), verbose = FALSE)
 ivk_l_tau <- validation_kproto(method = "tau", object = NULL, data = x, k = c(3:5), 
                             kp_obj = 'optimal', lambda = 2, verbose = FALSE)
+ivk_catvars_tau <- validation_kproto(method = "tau", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(1,1,0,0), kp_obj = 'optimal', verbose = FALSE)
+ivk_numvars_tau <- validation_kproto(method = "tau", object = NULL, data = x, k = c(3:5), 
+                                        lambda = c(0,0,1,1), kp_obj = 'optimal', verbose = FALSE)
+
 test_that("resulting objects based on tau index are as expected",{
   
   expect_is(iv_tau, "numeric")
@@ -237,6 +299,9 @@ test_that("resulting objects based on tau index are as expected",{
   expect_equal(ivk_tau[[1]], as.integer(names(which.max(ivk_tau[[3]]))))
   
   expect_equal(ivk_l_tau$kp_obj$lambda, 2)
+  
+  expect_true(length(ivk_catvars_tau) == 4)
+  expect_true(length(ivk_numvars_tau) == 4)
 }
 )
 

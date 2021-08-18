@@ -11,7 +11,8 @@ create.S_w_kpa <- function(object){
 
       d1 <- (x_k[rep(1:(object$size[k]-1),times=(object$size[k]-1):1, each=1), numvars, drop = FALSE] -
                x_k[unlist(lapply(2:object$size[k], seq, to=object$size[k])), numvars, drop = FALSE])^2
-      if(length(object$lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+      d1[is.na(d1)] <- 0
+      if(length(object$lambda) == 1) d1 <- rowSums(d1)
       if(length(object$lambda) > 1) d1 <- as.matrix(d1) %*% object$lambda[numvars]
       
       d2 <- x_k[rep(1:(object$size[k]-1),times=(object$size[k]-1):1, each=1),
@@ -38,7 +39,8 @@ create.S_b_kpa <- function(object){
       
       d1 <- (x_k[rep(1:object$size[k], each=object$size[l]), numvars, drop = FALSE] -
                x_l[rep(1:object$size[l], times=object$size[k]), numvars, drop = FALSE])^2
-      if(length(object$lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+      d1[is.na(d1)] <- 0
+      if(length(object$lambda) == 1) d1 <- rowSums(d1)
       if(length(object$lambda) > 1) d1 <- as.matrix(d1) %*% object$lambda[numvars]
 
       d2 <- x_k[rep(1:object$size[k], each=object$size[l]),
@@ -60,12 +62,14 @@ create.dist_kpa <- function(lambda = NULL, data1, data2){
   catvars <- sapply(data, is.factor)
   
   d1 <- (data[1,numvars, drop = FALSE]-data[2,numvars, drop = FALSE])^2
+  d1[is.na(d1)] <- 0
   if(length(lambda) == 1) d1 <- sum(d1)
-  if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
+  if(length(lambda) > 1) d1 <- as.matrix(d1, nrow = 1) %*% matrix(lambda[numvars], ncol = 1)
   
   d2 <- sapply(which(catvars), function(j) return(data[1,j] != data[2,j]))
+  d2[is.na(d2)] <- FALSE
   if(length(lambda) == 1) d2 <- lambda * sum(d2)
-  if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
+  if(length(lambda) > 1) d2 <- matrix(d2, nrow = 1) %*% matrix(lambda[catvars], ncol = 1)
   
   return(d1 + d2)
 }
@@ -170,11 +174,20 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
   
   if(!is.null(object)){
     if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
+    numvars <- sapply(object$data, is.numeric)
+    cond <- all(!as.logical(numvars*object$lambda))
+  }else{
+    numvars <- sapply(data, is.numeric)
+    cond <- all(!as.logical(numvars*lambda))
+  }
+  if(cond) message("As a result of the choice of lambda: No numeric variables in x! Index calculation might result in NA...\n")
+  
+  if(!is.null(object)){
     
     k <- length(object$size)
     
     #determine d(C_i,C_j)
-    min_CiCj <- matrix(numeric(k*k),ncol = k,nrow = k)
+    min_CiCj <- matrix(numeric(k*k), ncol = k, nrow = k)
     for(i in 1:(k-1)){
       xi <- object$data[which(object$cluster == i),]
       for(j in (i+1):k){
@@ -191,7 +204,13 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
         min_CiCj[i,j] <- min_ij
       }
     }
-    Zaehler <- min(min_CiCj[min_CiCj > 0])
+    
+    if(length(min_CiCj[min_CiCj > 0]) > 0){
+      numerator <- min(min_CiCj[min_CiCj > 0])
+    }else{
+      return(NA)
+    }
+    
     
     #determine diam(C_k)
     max_diam <- numeric(k)
@@ -210,10 +229,10 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
         max_diam[p] <- max_ij
       }
     }
-    Nenner <- max(max_diam)
+    denominator <- max(max_diam)
     
-    if(is.finite(Zaehler/Nenner)){
-      return(Zaehler/Nenner)
+    if(is.finite(numerator/denominator)){
+      return(numerator/denominator)
     }else{
       return(NA)
     }
@@ -248,8 +267,9 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
     names(indices) <- lapply(trace_kp, `[[`, 2)
     
     # find the optimal k, if it is ambiguously: sample
-    k_m <- which(indices == max(indices))
-    if(length(k_m)>1){k_m <- sample(k_m,1)}
+    if(all(is.na(indices))){return(NA)} # returning NA if dunn index couldn't be calculated (for all k), otherwise choose partition with highest index value
+    k_m <- which(indices == max(indices, na.rm = TRUE))
+    if(length(k_m)>1){k_m <- sample(k_m, 1)}
     k_opt <- as.integer(names(indices[k_m]))
     index_opt <- indices[k_m]
     
@@ -318,7 +338,7 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_
     index <- numeric(n)
     
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
+    object <- kproto(x = data, k = k[1], keep.data = TRUE,  lambda = lambda, ...)
     trace_kp <- list(list("index" = gamma_kproto(object = object, dists = dists), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
@@ -612,13 +632,15 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "op
     for(i in 1:nrows){
       #distances of the numeric variables
       d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow = nrows, byrow = TRUE))^2
+      d1[is.na(d1)] <- 0
       if(length(lambda) == 1) d1 <- rowSums(d1)
-      if(length(lambda) > 1) d1 <- d1 %*% lambda[numvars]
+      if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
       
       #distances of the categorical variances
       d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)))
+      d2[is.na(d2)] <- FALSE
       if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-      if(length(lambda) > 1) d2 <- d2 %*% lambda[catvars]
+      if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
       
       dists[,i] <- d1 + d2
     }
@@ -637,22 +659,34 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "op
     b <- numeric(nrows)
     s <- numeric(nrows)
     for(i in 1:nrows){
-      a[i] <- cluster_dists[i,cluster[i]]
-      b[i] <- min(cluster_dists[i,-cluster[i]])
-      s[i] <- (b[i] - a[i])/max(a[i],b[i])
+      if(is.na(cluster[i])){
+        # special case: no cluster assignment cluster[i] (usually resulting of all variables NA in x[i])
+        s[i] <- NA
+      }else{
+        a[i] <- cluster_dists[i, cluster[i]]
+        b[i] <- min(cluster_dists[i, -cluster[i]])
+        
+        if(max(a[i], b[i], na.rm = TRUE) == 0){
+          # special case: a[i]=0 and b[i]=0 => s = 0, since x[i] lies equally far away (distance = 0) from both the clusters
+          s[i] <- 0
+        }else{
+          s[i] <- (b[i] - a[i])/max(a[i],b[i], na.rm = TRUE)
+        }
+      }
+      
     }
     if(any(table(cluster) == 1)){
       for(i in which(cluster %in% as.integer(which(table(cluster) == 1)))){
         s[i] <- 0
       }
-      cat(length(which(cluster %in% as.integer(which(table(cluster) == 1))))," Cluster mit nur einem Element\n")
+      cat(length(which(cluster %in% as.integer(which(table(cluster) == 1))))," cluster with only one observation\n")
     }
     
-    index <- mean(s)
+    index <- mean(s, na.rm = TRUE)
     
     return(index)
   }else{
-    n <- nrow(data) 
+    n <- nrow(data)
     
     if(is.null(k)){k <- 2:sqrt(n)}
     
@@ -680,7 +714,7 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "op
     names(indices) <- lapply(trace_kp, `[[`, 2)
     
     # find the optimal k, if it is ambiguously: sample
-    k_m <- which(indices == max(indices))
+    k_m <- which(indices == max(indices, na.rm = TRUE))
     if(length(k_m)>1){k_m <- sample(k_m,1)}
     k_opt <- as.integer(names(indices[k_m]))
     index_opt <- indices[k_m]
@@ -725,7 +759,11 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
     n <- nrow(object$data)
     N_t <- n * (n - 1)/2
     M <- combn(1:n, m = 2)
-    M <- rbind(M,apply(X = M, MARGIN = 2, function(x) if(object$cluster[x[1]] == object$cluster[x[2]]){return(1)}else{return(-1)}))
+    M <- rbind(M, apply(X = M, MARGIN = 2, function(x){
+      if(any(is.na(c(object$cluster[x[1]], object$cluster[x[2]])))){return(-1)}else{
+        if(object$cluster[x[1]] == object$cluster[x[2]]){return(1)}else{return(-1)}
+      }
+    }))
     t <- 0
     for(i in 1:(ncol(M)-1)){
       t <- t + length(which(M[3,i]*M[3,-(1:i)] > 0))

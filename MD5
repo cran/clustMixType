@@ -1,10 +1,10 @@
-5e9f239b7c2e6f1a3c5fdefb328115bb *DESCRIPTION
+38e8128071dbddec910a692e4d1fc4b7 *DESCRIPTION
 6df41e5bdb08158cac77be03ee5fe6e6 *NAMESPACE
-4faa5761095a1b996519587cd5c2f24d *NEWS
-45ee7c1a4601ec8e4bf2f6d57b40920f *R/clustervalidation.R
-e15a5dd050fe735f00934caf0dc77fe4 *R/kprototypes.R
+7162359f53efb56fb5e4843527555ab9 *NEWS
+a01d501b20022a93fcb7dcb8ec83144a *R/clustervalidation.R
+b35ec9ae05a8f4ad1db5ad87cd0c5afb *R/kprototypes.R
 bd2d03829b46889dfe54dd4b2a1fe10c *README.md
-420594be46ac35c3816f13fa32feb78d *build/partial.rdb
+d7c6155722d2f99c8ed589e30bee6e14 *build/partial.rdb
 20cc3d81c12282cd5c77901e88a8012b *inst/CITATION
 331af7fdf353391b6c76bfb15460b276 *man/clprofiles.Rd
 e8a8ca493d4e99b5d927287fb9592c9b *man/figures/logo.png
@@ -14,5 +14,5 @@ ff8b7acf3bb2072a87bab75275320e62 *man/predict.kproto.Rd
 84fef08e444be012d55a0778adc64f47 *man/summary.Rd
 87ef0d0b50a9743ead507e4c1a33a791 *man/validation_kproto.Rd
 0dcba5dc10a8c4a9588f7e4ff78314b5 *tests/testthat.R
-de2864a07c35ba8ae2b95532a5e5aec7 *tests/testthat/test_basics.R
-cc514c4712f121fe9df7ed87d968e8af *tests/testthat/test_clustervalidation.R
+042dca9ab6c9617ab36d244d3d8b9fb2 *tests/testthat/test_basics.R
+d8f4f0ae792b2dac4da5d48c6bf0c279 *tests/testthat/test_clustervalidation.R
