@@ -931,6 +931,7 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
 #'   }
 #'
 #' @examples
+#' \dontrun{
 #' # generate toy data with factors and numerics
 #' n   <- 10
 #' prb <- 0.99
@@ -956,6 +957,7 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
 #' 
 #' # calculate cindex-value for the given clusterpartition
 #' cindex_value <- validation_kproto(method = "cindex", object = kpres)
+#' }
 #' 
 #' @rdname validation_kproto
 #' 
@@ -967,7 +969,10 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
 #' 
 #' @export
 validation_kproto <- function(method = NULL, object = NULL, data = NULL, k = NULL, lambda = NULL, kp_obj = "optimal", ...){
-  
+
+# tbd...    
+  if(!is.null(object)) {if(object$type == "gower") stop("validation_kproto currently only implemented for type == 'gower'")}  
+
   if(is.null(method)) stop("validation methode must be choosen!")
   if(!(method %in% c("cindex", "dunn", "gamma", "gplus", "mcclain", "ptbiserial", "silhouette", "tau"))) stop("choose one of these methods: cindex, dunn, gamma, gplus, mcclain, ptbiserial, silhouette, tau")
   
@@ -977,8 +982,8 @@ validation_kproto <- function(method = NULL, object = NULL, data = NULL, k = NUL
   if(!is.null(data) && ncol(data) < 2) stop("for clustering data should contain at least two variables!")
   if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
   
-  if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  
+  #if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
+  if(!is.null(object) && !inherits(object, "kproto")) stop("object must be type of 'kproto'")
   if(!is.null(k) && length(k) == 1){
     stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
   }

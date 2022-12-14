@@ -93,17 +93,104 @@ test_that("distances are computed correctly",{
 }
 )
 
+# test missings and imputation
+
 x3 <- x4 <- x
 x3$x1[1] <- NA
 x4$x1[1] <- x4$x2[1] <- x4$x3[1] <- x4$x4[1] <-  NA
 test_that("message for NAs.",{
   expect_message(kproto(x3, 4),"Observations with NAs are removed.")
-  expect_warning(kproto(x4, 4, na.rm = FALSE),"No meaningful cluster assignment possible for observations where all variables NA.")}
+  expect_warning(kproto(x4, 4, na.rm = "no"),"No meaningful cluster assignment possible for observations where all variables NA.")
+  expect_error(kproto(x3, 4, na.rm = "not"), "Argument na.rm must be either 'yes','no','imp.internal' or 'imp.onestep'!")
+  #expect_message(kproto(x3, 4, na.rm = TRUE),"Argument definition na.rm changed. Please update your code and use either 'yes','no','imp.internal' or 'imp.onestep'.")
+  expect_message(kproto(x3, 4, na.rm = TRUE),"Logical input for na.rm is deprecated. Please use either 'yes','no','imp.internal' or 'imp.onestep'.\n")
+  expect_error(kproto(x3, 4, na.rm = "imp.onestep", type = "gower"), "Argument na.rm must be either 'yes' or 'no', since imputation is not yet implemented for type = 'gower'!")}
 )
 
 prototypes <- data.frame(V1 = factor(c("A","B")), V2 = c(-3,3)) 
 x5 <- data.frame(V1 = factor(c(rep("A",10),rep("B",10))), V2 = c(rep(-3, 5), rep(-5, 5), rep(NA, 10))) 
-kpres <- kproto(x = x5, k = prototypes, na.rm = FALSE)
+kpres <- kproto(x = x5, k = prototypes, na.rm = "no")
 test_that("handling all NAs in variable in a cluster.",{
   expect_equal(kpres$centers[2,2], prototypes[2,2])}
+)
+
+x6 <- data.frame(V1 = factor(c(rep("A",10),rep("B",10))), V2 = c(rep(-3, 5), rep(-5, 5), rep(5, 5), rep(NA, 5))) 
+kpres_i <- kproto(x = x6, k = prototypes, na.rm = "imp.internal")
+kpres_ios <- kproto(x = x6, k = prototypes, na.rm = "imp.onestep")
+test_that("application of different imputation strategies",{
+  expect_is(kpres_i, "kproto")
+  expect_is(kpres_i$cluster, "integer")
+  expect_is(kpres_i$dists, "matrix")
+  expect_false(any(is.na(kpres_i$data)))
+  expect_is(kpres_ios, "kproto")
+  expect_is(kpres_ios$cluster, "integer")
+  expect_is(kpres_ios$dists, "matrix")
+  expect_false(any(is.na(kpres_ios$data)))}
+)
+
+
+# test gower extension
+kpres <- kproto(x = x, k = 4, type = "gower")
+test_that("Type = gower can be called instead of standard.",{
+  expect_equal(kpres$type, "gower")}
+)
+
+clusid <- rep(1:4, each = n)
+muk    <- 2
+# numeric
+mus <- c(rep(-muk, n), rep(-muk, n), rep(muk, n), rep(muk, n))
+x1  <- rnorm(4*n) + mus
+# ordered factor
+mus <- c(rep(-muk, n),rep(muk, n),rep(-muk, n),rep(muk, n))
+x2 <- rnorm(4*n) + mus
+quants <- quantile(x2, seq(0, 1, length.out = (8+1)))
+quants[1] <- -Inf
+quants[length(quants)] <- Inf
+x2 <- as.ordered(cut(x2, quants))
+x <- data.frame(x1, x2)
+
+kpres <- kproto(x = x, k = 4)
+test_that("Standard still works if ordered factors.",{
+  expect_equal(kpres$type, "standard")}
+)
+
+kpres <- kproto(x = x, k = 4, type = "standard")
+test_that("Standard still works if ordered factors.",{
+  expect_equal(kpres$type, "standard")}
+)
+
+kpres <- kproto(x = x, k = 4, type = "gower")
+test_that("Type = gower will be called.",{
+  expect_equal(kpres$type, "gower")}
+)
+
+xx <- x
+xx[,3] <- factor(x[,2], ordered = F)
+kpres <- kproto(x = xx, k = 4, type = "gower")
+test_that("Prototypes for ordered factor variables using gower extension.",{
+  expect_equal(class(kpres$centers[,2])[1], "ordered")}
+)
+
+test_that("Prototypes for (unordered) factor variables using gower extension.",{
+  expect_equal(class(kpres$centers[,3]), "factor")}
+)
+
+data(iris)
+model <- kproto(x = iris, k = 3)
+pred  <- predict(model, iris[1, ])
+test_that("Prediction for data frame with one single observation.",{
+  expect_equal(class(pred$dists)[1], "matrix")}
+)
+
+iris2 <- iris
+iris2$Species <- as.ordered(iris$Species)
+model <- kproto(x = iris2, k = 3, type = "gower")
+pred <- predict(model, iris2[1, ])
+test_that("Prediction for data frame with one single observation for type = gower.",{
+  expect_equal(class(pred$dists)[1], "matrix")}
+)
+
+kpres <- kproto(x = x, k = x[1:4,])
+test_that("kproto_gower works for is.data.frame(k).",{
+  expect_equal(class(kpres), "kproto")}
 )

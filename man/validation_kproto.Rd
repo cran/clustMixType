@@ -108,6 +108,7 @@ The maximum value of the index is used to indicate the optimal number of cluster
   }
 }
 \examples{
+\dontrun{
 # generate toy data with factors and numerics
 n   <- 10
 prb <- 0.99
@@ -133,6 +134,7 @@ kpres <- kproto(x, 4, keep.data = TRUE)
 
 # calculate cindex-value for the given clusterpartition
 cindex_value <- validation_kproto(method = "cindex", object = kpres)
+}
 
 }
 \references{

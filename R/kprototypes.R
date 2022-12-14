@@ -2,21 +2,24 @@
 # For their feedback and suggestions thanks to:
 # - Bridget Ssendagala 
 # - Ben Feng 
-# - Rabea Aschenbruck
+# - Galen Terziysky
 ###############################################
 
 #' @title k-Prototypes Clustering
 #' @description Computes k-prototypes clustering for mixed-type data.
 #' 
 #' @details The algorithm like k-means iteratively recomputes cluster prototypes and reassigns clusters.
-#' Clusters are assigned using \eqn{d(x,y) =  d_{euclid}(x,y) + \lambda d_{simple\,matching}(x,y)}.
+#' For \code{type = "standard"}
+#' clusters are assigned using \eqn{d(x,y) =  d_{euclid}(x,y) + \lambda d_{simple\,matching}(x,y)}.
 #' Cluster prototypes are computed as cluster means for numeric variables and modes for factors 
 #' (cf. Huang, 1998).
+#' Ordered factors variables are treated as categorical variables.
 #' In case of \code{na.rm = FALSE}: for each observation variables with missings are ignored 
 #' (i.e. only the remaining variables are considered for distance computation). 
 #' In consequence for observations with missings this might result in a change of variable's weighting compared to the one specified
-#' by \code{lambda}. Further note: For these observations distances to the prototypes will typically be smaller as they are based 
+#' by \code{lambda}. For these observations distances to the prototypes will typically be smaller as they are based 
 #' on fewer variables.
+#' For \code{type = "gower"} cf. \code{\link{kproto_gower}}.
 #' 
 #' @keywords classif 
 #' @keywords cluster
@@ -36,22 +39,27 @@ kproto <- function (x, ...)
 #' and simple matching coefficient between categorical variables. Also a vector of variable specific factors is possible where 
 #' the order must correspond to the order of the variables in the data. In this case all variables' distances will be multiplied by 
 #' their corresponding lambda value.
+#' @param type Character, to specify the distance for clustering. Either \code{"standard"} (cf. details below) or \code{"gower"}. The latter calls \code{\link{kproto_gower}}.
 #' @param iter.max Maximum number of iterations if no convergence before.
-#' @param nstart If > 1 repetetive computations with random initializations are computed and the result with minimum tot.dist is returned.
-#' @param na.rm A logical value indicating whether NA values should be stripped before the computation proceeds.
+#' @param nstart If > 1 repetitive computations with random initializations are computed and the result with minimum tot.dist is returned.
+#' @param na.rm Character; Either "yes" to strip NA values for complete case analysis, "no" to keep and ignore NA values, "imp.internal" to impute the NAs within the algorithm or "imp.onestep" to apply the algorithm ignoring the NAs and impute them after the partition is determined.
 #' @param keep.data Logical whether original should be included in the returned object.
-#' @param verbose Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
+#' @param verbose Logical whether additional information about process should be printed. 
+#' Caution: For \code{verbose=FALSE}, if the number of clusters is reduced during the iterations it will not mentioned.
 #' @param \dots Currently not used.
 #
 #' @return \code{\link{kmeans}} like object of class \code{kproto}:
 #' @return \item{cluster}{Vector of cluster memberships.}
 #' @return \item{centers}{Data frame of cluster prototypes.}
 #' @return \item{lambda}{Distance parameter lambda.}
+#' @return \item{type}{Type argument of the function call.}
 #' @return \item{size}{Vector of cluster sizes.}
 #' @return \item{withinss}{Vector of within cluster distances for each cluster, i.e. summed distances of all observations belonging to a cluster to their respective prototype.}
 #' @return \item{tot.withinss}{Target function: sum of all observations' distances to their corresponding cluster prototype.}
 #' @return \item{dists}{Matrix with distances of observations to all cluster prototypes.}
 #' @return \item{iter}{Prespecified maximum number of iterations.}
+#' @return \item{stdization}{Only returned for \code{type = "gower"}: List of standardized ranks for ordinal variables 
+#' and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
 #' @return \item{trace}{List with two elements (vectors) tracing the iteration process: 
 #' \code{tot.dists} and \code{moved} number of observations over all iterations.}
 #'   
@@ -96,6 +104,8 @@ kproto <- function (x, ...)
 #' @references \itemize{
 #'     \item Szepannek, G. (2018): clustMixType: User-Friendly Clustering of Mixed-Type Data in R, {\emph{The R Journal 10/2}}, 200-208, 
 #'           \doi{10.32614/RJ-2018-048}.
+#'     \item Aschenbruck, R., Szepannek, G., Wilhelm, A. (2022): Imputation Strategies for Clustering Mixed‑Type Data with Missing Values, 
+#'     {\emph{Journal of Classification}}, \doi{10.1007/s00357-022-09422-y}. 
 #'     \item Z.Huang (1998): 
 #'           Extensions to the k-Means Algorithm for Clustering Large Data Sets with Categorical Variables, 
 #'           Data Mining and Knowledge Discovery 2, 283-304.
@@ -108,26 +118,13 @@ kproto <- function (x, ...)
 #' 
 #' @method kproto default
 #' @export 
-kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.rm = TRUE, keep.data = TRUE, verbose = TRUE, ...){
+kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 100, nstart = 1, na.rm = "yes", keep.data = TRUE, verbose = TRUE, ...){
   
   # enable input of tibbles
   if(is_tibble(x) == TRUE){x <- as.data.frame(x)}
   
-  # initial error checks
-  if(!is.data.frame(x)) stop("x should be a data frame!")
-  if(ncol(x) < 2) stop("For clustering x should contain at least two variables!")
-  if(iter.max < 1 | nstart < 1) stop("iter.max and nstart must not be specified < 1!")
-  if(!is.null(lambda)){
-    if(any(lambda < 0)) stop("lambda must be specified >= 0!")
-    if(!any(lambda > 0)) stop("lambda must be specified > 0 for at least two variable!")
-    }
-  # check for numeric and factor variables
-  numvars <- sapply(x, is.numeric)
-  anynum <- any(numvars)
-  catvars <- sapply(x, is.factor)
-  anyfact <- any(catvars)
-  if(!anynum) stop("\n No numeric variables in x! Try using kmodes() from package klaR...\n\n")
-  if(!anyfact) stop("\n No factor variables in x! Try using kmeans()...\n\n")
+  if(nrow(x) == 1) stop("Only one observation clustering not meaningful.")
+  k_input <- k # store input k for nstart > 1 as clusters can be merged 
   
   # treatment of missings
   NAcount <- apply(x, 2, function(z) sum(is.na(z)))
@@ -136,182 +133,143 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
     print(NAcount)
   }
   if(any(NAcount == nrow(x))) stop(paste("Variable(s) have only NAs please remove them:",names(NAcount)[NAcount == nrow(x)],"!"))
-  if(na.rm) {
-    miss <- apply(x, 1, function(z) any(is.na(z)))
-    if(verbose){
-      cat(sum(miss), "observation(s) with NAs.\n")
-      if(sum(miss) > 0) message("Observations with NAs are removed.\n")
-      cat("\n")
-    } 
-    x <- x[!miss,]
+  
+  # Backward compatibility
+  if(is.logical(na.rm)){
+    if(na.rm){
+      na.rm <- "yes"
+    }else{
+      na.rm <- "no"
+    }
+    message("Logical input for na.rm is deprecated. Please use either 'yes','no','imp.internal' or 'imp.onestep'.\n")
+  }
+  if(na.rm %in% c("yes","no","imp.internal", "imp.onestep")){
+    if(na.rm == "yes") {
+      miss <- apply(x, 1, function(z) any(is.na(z)))
+      if(verbose){
+        cat(sum(miss), "observation(s) with NAs.\n")
+        if(sum(miss) > 0) message("Observations with NAs are removed.\n")
+        cat("\n")
+      } 
+      x <- x[!miss,]
     } # remove missings
-  
-  if(!na.rm){
-    allNAs <- apply(x,1,function(z) all(is.na(z)))
-    if(sum(allNAs) > 0){
-      if(verbose) cat(sum(allNAs), "observation(s) where all variables NA.\n")
-      warning("No meaningful cluster assignment possible for observations where all variables NA.\n")
-      if(verbose) cat("\n")
-      
+    
+    if(na.rm != "yes"){
+      allNAs <- apply(x,1,function(z) all(is.na(z)))
+      if(sum(allNAs) > 0){
+        if(verbose) cat(sum(allNAs), "observation(s) where all variables NA.\n")
+        warning("No meaningful cluster assignment possible for observations where all variables NA.\n")
+        if(verbose) cat("\n")
+        
+      }
     }
-  }
-  
-  if(nrow(x) == 1) stop("Only one observation clustering not meaningful.")
-  
-  k_input <- k # store input k for nstart > 1 as clusters can be merged 
-  
-  # initialize prototypes
-  if(!is.data.frame(k)){
-    if (length(k) == 1){
-      if(as.integer(k) != k){k <- as.integer(k); warning(paste("k has been set to", k,"!"))}
-      if(sum(complete.cases(x)) < k) stop("Data frame has less complete observations than clusters!")
-      ids <- sample(row.names(x[complete.cases(x),]), k)
-      protos <- x[ids,]
-    }
-    if (length(k) > 1){
-      if(nrow(x) < length(k)) stop("Data frame has less observations than clusters!")
-      ids <- k
-      k <- length(ids)
-      if(length(unique(ids)) != length(ids)) stop("If k is specified as a vector it should contain different indices!")
-      if(any(ids<1)|any(ids>nrow(x))) stop("If k is specified as a vector all elements must be valid indices of x!")
-      #check for integer
-      protos <- x[ids,]
-      if(any(!complete.cases(protos))) stop("Choose initial prototypes without missing values!")
-    }
-    rm(ids)
-  }
-  if(is.data.frame(k)){
-    if(nrow(x) < nrow(k)) stop("Data frame has less observations than clusters!")
-    if(length(names(k)) != length(names(x))) stop("k and x have different numbers of columns!")
-    if(any(names(k) != names(x))) stop("k and x have different column names!")
-    if(anynum) {if( any(sapply(k, is.numeric) != numvars)) stop("Numeric variables of k and x do not match!")}
-    if(anyfact) {if( any(sapply(k, is.factor) != catvars)) stop("Factor variables of k and x do not match!")}
-    protos <- k
-    if(any(!complete.cases(protos))) stop("Prototypes with missing values. Choose initial prototypes without missing values!")
-    k <- nrow(protos)
-  }
-  if(k < 1) stop("Number of clusters k must not be smaller than 1!")
-  
-  # automatic calculation of lambda
-  if(length(lambda) > 1){
-    if(length(lambda) != sum(c(numvars,catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")
-    # warning for variable selection via lambda (which results in no numvars or no catvars)
-    if(all(!as.logical(numvars*lambda))) warning("As a result of the choice of lambda: No numeric variables in x! Better try using kmodes() from package klaR...\n")
-    if(all(!as.logical(catvars*lambda))) warning("As a result of the choice of lambda: No factor variables in x! Better try using kmeans()...\n")
   }else{
-    if(length(lambda) == 1) {if(lambda == 0) stop("lambda has to be a value != 0. For automatic calculation use lambda = NULL (default setting)!")}
+    stop("Argument na.rm must be either 'yes','no','imp.internal' or 'imp.onestep'!")
+  }
+  
+  if(!type %in% c("standard", "gower")) stop("Argument type must be either 'standard' or 'gower'!")
+  if(type == "standard"){
+    
+    # save origin data, befor starting the imputation process
+    if(na.rm == "imp.internal"){origin <- x}
+    
+    # initial error checks
+    if(!is.data.frame(x)) stop("x should be a data frame!")
+    if(ncol(x) < 2) stop("For clustering x should contain at least two variables!")
+    if(iter.max < 1 | nstart < 1) stop("iter.max and nstart must not be specified < 1!")
+    if(!is.null(lambda)){
+      if(any(lambda < 0)) stop("lambda must be specified >= 0!")
+      if(!any(lambda > 0)) stop("lambda must be specified > 0 for at least two variable!")
     }
-  if(is.null(lambda)){
-    if(anynum & anyfact){
-      vnum <- mean(sapply(x[,numvars, drop = FALSE], var, na.rm = TRUE))
-      vcat <- mean(sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2))))
-      if (vnum == 0){
-        if(verbose) warning("All numerical variables have zero variance.")
-        anynum <- FALSE
-      } 
-      if (vcat == 0){
-        if(verbose) warning("All categorical variables have zero variance.")
-        anyfact <- FALSE
-      } 
+    # check for numeric and factor variables
+    numvars <- sapply(x, is.numeric)
+    anynum <- any(numvars)
+    catvars <- sapply(x, is.factor)
+    anyfact <- any(catvars)
+    if(!anynum) stop("\n No numeric variables in x! Try using kmodes() from package klaR...\n\n")
+    if(!anyfact) stop("\n No factor variables in x! Try using kmeans()...\n\n")
+    
+    # initialize prototypes
+    if(!is.data.frame(k)){
+      if (length(k) == 1){
+        if(as.integer(k) != k){k <- as.integer(k); warning(paste("k has been set to", k,"!"))}
+        if(sum(complete.cases(x)) < k) stop("Data frame has less complete observations than clusters!")
+        ids <- sample(row.names(x[complete.cases(x),]), k)
+        protos <- x[ids,]
+      }
+      if (length(k) > 1){
+        if(nrow(x) < length(k)) stop("Data frame has less observations than clusters!")
+        ids <- k
+        k <- length(ids)
+        if(length(unique(ids)) != length(ids)) stop("If k is specified as a vector it should contain different indices!")
+        if(any(ids<1)|any(ids>nrow(x))) stop("If k is specified as a vector all elements must be valid indices of x!")
+        #check for integer
+        protos <- x[ids,]
+        if(any(!complete.cases(protos))) stop("Choose initial prototypes without missing values!")
+      }
+      rm(ids)
+    }
+    if(is.data.frame(k)){
+      if(nrow(x) < nrow(k)) stop("Data frame has less observations than clusters!")
+      if(length(names(k)) != length(names(x))) stop("k and x have different numbers of columns!")
+      if(any(names(k) != names(x))) stop("k and x have different column names!")
+      if(anynum) {if( any(sapply(k, is.numeric) != numvars)) stop("Numeric variables of k and x do not match!")}
+      if(anyfact) {if( any(sapply(k, is.factor) != catvars)) stop("Factor variables of k and x do not match!")}
+      protos <- k
+      if(any(!complete.cases(protos))) stop("Prototypes with missing values. Choose initial prototypes without missing values!")
+      k <- nrow(protos)
+    }
+    if(k < 1) stop("Number of clusters k must not be smaller than 1!")
+    
+    # automatic calculation of lambda
+    if(length(lambda) > 1){
+      if(length(lambda) != sum(c(numvars,catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")
+      # warning for variable selection via lambda (which results in no numvars or no catvars)
+      if(all(!as.logical(numvars*lambda))) warning("As a result of the choice of lambda: No numeric variables in x! Better try using kmodes() from package klaR...\n")
+      if(all(!as.logical(catvars*lambda))) warning("As a result of the choice of lambda: No factor variables in x! Better try using kmeans()...\n")
+    }else{
+      if(length(lambda) == 1) {if(lambda == 0) stop("lambda has to be a value != 0. For automatic calculation use lambda = NULL (default setting)!")}
+    }
+    if(is.null(lambda)){
       if(anynum & anyfact){
-        lambda <- vnum/vcat
-        if(verbose) cat("Estimated lambda:", lambda, "\n\n")
-      }else{
-        lambda <- 1
-      }
-    }
-  }
-  
-  # initialize clusters
-  clusters  <- numeric(nrow(x)) 
-  tot.dists <- NULL
-  moved   <- NULL
-  iter <- 1
-  
-  # check for any equal prototypes and reduce cluster number in case of occurence
-  if(k > 1){
-    keep.protos <- rep(TRUE,k)
-    for(l in 1:(k-1)){
-      for(m in (l+1):k){
-        d1 <- sum((protos[l,numvars, drop = FALSE]-protos[m,numvars, drop = FALSE])^2) # euclidean for numerics
-        d2 <- sum(protos[l,catvars, drop = FALSE] != protos[m,catvars, drop = FALSE]) # wtd simple matching for categorics 
-        if((d1+d2) == 0) keep.protos[m] <- FALSE 
-      }
-    }
-    if(!all(keep.protos)){
-      protos <- protos[keep.protos,]
-      k <- sum(keep.protos)
-      if(verbose) message("Equal prototypes merged. Cluster number reduced to:", k, "\n\n")      
-    }
-  }
-  
-  # special case only one cluster
-  if(k == 1){clusters <- rep(1, nrow(x)); size  <- table(clusters); iter <- iter.max} # REM: named vector size is needed later...
-  
-  # start iterations for standard case (i.e. k > 1)
-  while(iter < iter.max){
-    
-    # compute distances 
-    nrows <- nrow(x)
-    dists <- matrix(NA, nrow=nrows, ncol = k)
-    for(i in 1:k){
-      #a0 <- proc.time()[3]      
-      #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
-      d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
-      d1[is.na(d1)] <- 0
-      if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
-      if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
-      #a1 <- proc.time()[3]      
-      #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
-      d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
-      d2[is.na(d2)] <- FALSE
-      if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-      if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
-      #a2 <- proc.time()[3]      
-      dists[,i] <- d1 + d2
-      #cat(a1-a0, a2-a1, "\n")
-    }
-    
-    # assign clusters 
-    old.clusters  <- clusters
-    # clusters      <- apply(dists, 1, function(z) which.min(z))
-    clusters      <- apply(dists, 1, function(z) {a <- which(z == min(z)); if (length(a)>1) a <- sample(a,1); return(a)}) # sample in case of multiple minima
-    size          <- table(clusters)  
-    min.dists     <- apply(cbind(clusters, dists), 1, function(z) z[z[1]+1])
-    within        <- as.numeric(by(min.dists, clusters, sum))
-    tot.within    <- sum(within)
-    # prevent from empty classes
-    #tot.within    <- numeric(k)
-    #totw.list     <- by(min.dists, clusters, sum) 
-    #tot.within[names(totw.list)] <- as.numeric(totw.list)
-    
-    # ...check for empty clusters and eventually reduce number of prototypes    
-    if (length(size) < k){
-      k <- length(size)
-      protos <- protos[1:length(size),]  
-      if(verbose) cat("Empty clusters occur. Cluster number reduced to:", k, "\n\n")
-    }
-    
-    # trace
-    tot.dists <- c(tot.dists, sum(tot.within))      
-    moved <- c(moved, sum(clusters != old.clusters))
-    
-    # compute new prototypes
-    remids <- as.integer(names(size))
-    for(i in remids){
-      some_vals <- sapply(x[clusters == i, , drop = FALSE], function(z) !all(is.na(z))) # only update variables if not all values are NA
-      if(any(some_vals & numvars)){
-        protos[which(remids == i), some_vals & numvars] <- sapply(x[clusters == i, some_vals & numvars, drop = FALSE], mean, na.rm = TRUE)
-      }
-      if(any(some_vals & catvars)){
-        protos[which(remids == i), some_vals & catvars] <- sapply(x[clusters == i, some_vals & catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+        vnum <- mean(sapply(x[,numvars, drop = FALSE], var, na.rm = TRUE))
+        vcat <- mean(sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2))))
+        if (vnum == 0){
+          if(verbose) warning("All numerical variables have zero variance.")
+          anynum <- FALSE
+        } 
+        if (vcat == 0){
+          if(verbose) warning("All categorical variables have zero variance.")
+          anyfact <- FALSE
+        } 
+        if(anynum & anyfact){
+          lambda <- vnum/vcat
+          if(verbose) cat("Estimated lambda:", lambda, "\n\n")
+        }else{
+          lambda <- 1
+        }
       }
     }
     
-    if(k == 1){clusters <- rep(1, length(clusters)); size <- table(clusters); iter <- iter.max; break}
+    # deleting all incomplete observations
+    if(na.rm == "yes"){
+      miss <- apply(x, 1, function(z) any(is.na(z)))
+      if(verbose){
+        cat(sum(miss), "observation(s) with NAs.\n")
+        if(sum(miss) > 0) message("Observations with NAs are removed.\n")
+        cat("\n")
+      }
+      x <- x[!miss,]
+    }
+    
+    # initialize clusters
+    clusters  <- numeric(nrow(x)) 
+    tot.dists <- NULL
+    moved   <- NULL
+    iter <- 1
     
     # check for any equal prototypes and reduce cluster number in case of occurence
-    if(iter == (iter.max-1)){ # REM: for last iteration equal prototypes are allowed. otherwise less prototypes than assigned clusters.
+    if(k > 1){
       keep.protos <- rep(TRUE,k)
       for(l in 1:(k-1)){
         for(m in (l+1):k){
@@ -323,83 +281,218 @@ kproto.default <- function(x, k, lambda = NULL, iter.max = 100, nstart = 1, na.r
       if(!all(keep.protos)){
         protos <- protos[keep.protos,]
         k <- sum(keep.protos)
-        if(verbose) cat("Equal prototypes merged. Cluster number reduced to:", k, "\n\n")      
+        if(verbose) message("Equal prototypes merged. Cluster number reduced to:", k, "\n\n")      
       }
     }
     
-    # add stopping rules
-    if(moved[length(moved)] ==  0) break
+    # special case only one cluster
+    if(k == 1){clusters <- rep(1, nrow(x)); size  <- table(clusters); iter <- iter.max} # REM: named vector size is needed later...
     
-    if(k == 1){clusters <- rep(1, length(clusters)); size <- table(clusters); iter <- iter.max; break}
+    # start iterations for standard case (i.e. k > 1)
+    while(iter < iter.max){
+      
+      # compute distances 
+      nrows <- nrow(x)
+      dists <- matrix(NA, nrow=nrows, ncol = k)
+      for(i in 1:k){
+        #a0 <- proc.time()[3]      
+        #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
+        d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+        d1[is.na(d1)] <- 0
+        if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+        if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
+        #a1 <- proc.time()[3]      
+        #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
+        d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
+        d2[is.na(d2)] <- FALSE
+        if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
+        if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
+        #a2 <- proc.time()[3]      
+        dists[,i] <- d1 + d2
+        #cat(a1-a0, a2-a1, "\n")
+      }
+      
+      # assign clusters 
+      old.clusters  <- clusters
+      # clusters      <- apply(dists, 1, function(z) which.min(z))
+      clusters      <- apply(dists, 1, function(z) {a <- which(z == min(z)); if (length(a)>1) a <- sample(a,1); return(a)}) # sample in case of multiple minima
+      size          <- table(clusters)  
+      min.dists     <- apply(cbind(clusters, dists), 1, function(z) z[z[1]+1])
+      within        <- as.numeric(by(min.dists, clusters, sum))
+      tot.within    <- sum(within)
+      # prevent from empty classes
+      #tot.within    <- numeric(k)
+      #totw.list     <- by(min.dists, clusters, sum) 
+      #tot.within[names(totw.list)] <- as.numeric(totw.list)
+      
+      # ...check for empty clusters and eventually reduce number of prototypes    
+      if (length(size) < k){
+        k <- length(size)
+        protos <- protos[1:length(size),]  
+        if(verbose) cat("Empty clusters occur. Cluster number reduced to:", k, "\n\n")
+      }
+      
+      # trace
+      tot.dists <- c(tot.dists, sum(tot.within))      
+      moved <- c(moved, sum(clusters != old.clusters))
+      
+      # compute new prototypes
+      remids <- as.integer(names(size))
+      for(i in remids){
+        some_vals <- sapply(x[clusters == i, , drop = FALSE], function(z) !all(is.na(z))) # only update variables if not all values are NA
+        if(any(some_vals & numvars)){
+          protos[which(remids == i), some_vals & numvars] <- sapply(x[clusters == i, some_vals & numvars, drop = FALSE], mean, na.rm = TRUE)
+        }
+        if(any(some_vals & catvars)){
+          protos[which(remids == i), some_vals & catvars] <- sapply(x[clusters == i, some_vals & catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+        }
+      }
+      
+      # update missing values, if NAs should be imputed during the algorithm
+      if(na.rm == "imp.internal"){
+        x_old <- x
+        x <- origin
+        
+        if(any(is.na(x[,numvars]))){
+          x[,numvars][is.na(x[,numvars])] <- protos[clusters,numvars][is.na(x[,numvars])]
+        }
+        if(any(is.na(x[,catvars]))){
+          x[,catvars][is.na(x[,catvars])] <- protos[clusters,catvars][is.na(x[,catvars])]
+        }
+        
+        # observation with all values NA won't be imputed
+        x[allNAs,] <- NA
+      }
+      
+      if(k == 1){clusters <- rep(1, length(clusters)); size <- table(clusters); iter <- iter.max; break}
+      
+      # check for any equal prototypes and reduce cluster number in case of occurence
+      if(iter == (iter.max-1)){ # REM: for last iteration equal prototypes are allowed. otherwise less prototypes than assigned clusters.
+        keep.protos <- rep(TRUE,k)
+        for(l in 1:(k-1)){
+          for(m in (l+1):k){
+            d1 <- sum((protos[l,numvars, drop = FALSE]-protos[m,numvars, drop = FALSE])^2) # euclidean for numerics
+            d2 <- sum(protos[l,catvars, drop = FALSE] != protos[m,catvars, drop = FALSE]) # wtd simple matching for categorics 
+            if((d1+d2) == 0) keep.protos[m] <- FALSE 
+          }
+        }
+        if(!all(keep.protos)){
+          protos <- protos[keep.protos,]
+          k <- sum(keep.protos)
+          if(verbose) cat("Equal prototypes merged. Cluster number reduced to:", k, "\n\n")      
+        }
+      }
+      
+      # add stopping rules
+      if(moved[length(moved)] ==  0){
+        if(na.rm != "imp.internal"){
+          break
+        }else{
+          if(sum(!(x == x_old), na.rm = TRUE) == 0){
+            break
+          }
+        }
+      }
+      
+      if(k == 1){clusters <- rep(1, length(clusters)); size <- table(clusters); iter <- iter.max; break}
+      
+      #cat("iter", iter, "moved", moved[length(moved)], "tot.dists",tot.dists[length(tot.dists)],"\n" )      
+      iter <- iter+1
+    }
     
-    #cat("iter", iter, "moved", moved[length(moved)], "tot.dists",tot.dists[length(tot.dists)],"\n" )      
-    iter <- iter+1
+    
+    ### Final update of prototypes and dists
+    if(iter == iter.max){ # otherwise there have been no moves anymore and prototypes correspond to cluster assignments 
+      # compute new prototypes
+      remids <- as.integer(names(size))
+      for(i in remids){
+        some_vals <- sapply(x[clusters == i, , drop = FALSE], function(z) !all(is.na(z))) # only update variables if not all values are NA
+        if(any(some_vals & numvars)){
+          protos[which(remids == i), some_vals & numvars] <- sapply(x[clusters == i, some_vals & numvars, drop = FALSE], mean, na.rm = TRUE)
+        }
+        if(any(some_vals & catvars)){
+          protos[which(remids == i), some_vals & catvars] <- sapply(x[clusters == i, some_vals & catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
+        }
+      }
+      
+      # compute distances 
+      nrows <- nrow(x)
+      dists <- matrix(NA, nrow=nrows, ncol = k)
+      for(i in 1:k){
+        d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+        d1[is.na(d1)] <- 0
+        if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+        if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
+        d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
+        d2[is.na(d2)] <- FALSE
+        if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
+        if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
+        dists[,i] <- d1 + d2
+      }
+      
+      size          <- table(clusters)  
+      min.dists     <- apply(cbind(clusters, dists), 1, function(z) z[z[1]+1])
+      within        <- as.numeric(by(min.dists, clusters, sum))
+      tot.within    <- sum(within)
+    }
+    
+    # observations with all NA are not assigned to a cluster
+    if(na.rm != "yes"){
+      if(sum(allNAs) > 0){
+        clusters[allNAs] <- NA
+        dists[allNAs,] <- NA
+      }
+    }
+    
+    names(clusters) <- row.names(dists) <- row.names(x)
+    rownames(protos) <- NULL
+    # create result: 
+    res <- list(cluster = clusters,  
+                centers = protos, 
+                lambda = lambda, 
+                size = size,
+                withinss = within,
+                tot.withinss = tot.within,   
+                dists = dists, 
+                iter = iter, 
+                trace = list(tot.dists = tot.dists, moved = moved))
+    
   }
-
   
-  ### Final update of prototypes and dists
-  if(iter == iter.max){ # otherwise there have been no moves anymore and prototypes correspond to cluster assignments 
-    # compute new prototypes
-    remids <- as.integer(names(size))
-    for(i in remids){
-      some_vals <- sapply(x[clusters == i, , drop = FALSE], function(z) !all(is.na(z))) # only update variables if not all values are NA
-      if(any(some_vals & numvars)){
-        protos[which(remids == i), some_vals & numvars] <- sapply(x[clusters == i, some_vals & numvars, drop = FALSE], mean, na.rm = TRUE)
-      }
-      if(any(some_vals & catvars)){
-        protos[which(remids == i), some_vals & catvars] <- sapply(x[clusters == i, some_vals & catvars, drop = FALSE], function(z) levels(z)[which.max(table(z))])
-      }
+  if(type == "gower"){
+    if(na.rm %in% c("imp.internal", "imp.onestep")){
+      stop("Argument na.rm must be either 'yes' or 'no', since imputation is not yet implemented for type = 'gower'!")
     }
-    
-    # compute distances 
-    nrows <- nrow(x)
-    dists <- matrix(NA, nrow=nrows, ncol = k)
-    for(i in 1:k){
-      d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
-      d1[is.na(d1)] <- 0
-      if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
-      if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
-      d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
-      d2[is.na(d2)] <- FALSE
-      if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-      if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
-      dists[,i] <- d1 + d2
-    }
-    
-    size          <- table(clusters)  
-    min.dists     <- apply(cbind(clusters, dists), 1, function(z) z[z[1]+1])
-    within        <- as.numeric(by(min.dists, clusters, sum))
-    tot.within    <- sum(within)
+    res <- kproto_gower(x=x, k=k_input, lambda = lambda, iter.max = iter.max, verbose=verbose, na.rm = na.rm)
   }
   
-  if(na.rm == FALSE){
-    if(sum(allNAs) > 0){
-      clusters[allNAs] <- NA
-      dists[allNAs,] <- NA
-    }
-  }
-
-  names(clusters) <- row.names(dists) <- row.names(x)
-  rownames(protos) <- NULL
-  # create result: 
-  res <- list(cluster = clusters,  
-              centers = protos, 
-              lambda = lambda, 
-              size = size,
-              withinss = within,
-              tot.withinss = tot.within,   
-              dists = dists, 
-              iter = iter, 
-              trace = list(tot.dists = tot.dists, moved = moved))
+  # if keep.data == TRUE add data to list before nstart-loop otherwise the first determined x (inclusive imputed values)
+  # is added and not necessarily the data of the x with the "best" imputed values (of clusterpartition with smallest tot.withinss)
+  if(keep.data) res$data = x
   
   # loop: if nstart > 1:
   if(nstart > 1)
     for(j in 2:nstart){
-      res.new <- kproto(x=x, k=k_input, lambda = lambda,  iter.max = iter.max, nstart=1, verbose=verbose, na.rm = na.rm)
+      # start function kproto with the origin data in case of imputation
+      if(na.rm == "imp.internal"){
+        x <- origin
+      }
+      res.new <- kproto(x=x, k=k_input, lambda = lambda,  type = type, iter.max = iter.max, nstart=1, verbose=verbose, na.rm = na.rm)
       if(res.new$tot.withinss < res$tot.withinss) res <- res.new
     }  
   
-  if(keep.data) res$data = x
+  if(na.rm == "imp.onestep"){
+    x <- res$data
+    if(any(is.na(x[,numvars]))){
+      x[,numvars][is.na(x[,numvars])] <- protos[clusters,numvars][is.na(x[,numvars])]
+    }
+    if(any(is.na(x[,catvars]))){
+      x[,catvars][is.na(x[,catvars])] <- protos[clusters,catvars][is.na(x[,catvars])]
+    }
+    res$data <- x
+  }
+  
+  res$type <- type
   class(res) <- "kproto"
   return(res)
 }
@@ -453,33 +546,100 @@ predict.kproto <-function(object, newdata, ...){
   protos <- object$centers
   x <- newdata
   
-  # check for numeric and factor variables  
-  numvars <- sapply(x, is.numeric)
-  catvars <- sapply(x, is.factor)
-  
-  if(!all(names(object$centers) == names(x))) warning("Variable names of newdata do not match!")
-  if(ncol(object$centers) != ncol(x)) stop("Column number of newdata does not match object!")
-  if(!all(sapply(object$centers[,numvars, drop = FALSE], is.numeric))) stop("Numeric variables of object and newdata do not match!")
-  if(!all(sapply(object$centers[,catvars, drop = FALSE], is.factor))) stop("Factor variables of object and newdata do not match!")
-  
-  # compute distances 
-  dists <- matrix(NA, nrow=nrow(x), ncol = k)
-  nrows <- nrow(x)
-  for(i in 1:k){
-    #a0 <- proc.time()[3]      
-    #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
-    d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
-    if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
-    if(length(lambda) > 1) d1<- as.matrix(d1) %*% lambda[numvars]
-    #a1 <- proc.time()[3]      
-    #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
-    d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
-    d2[is.na(d2)] <- FALSE
-    if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-    if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
-    #a2 <- proc.time()[3]      
-    dists[,i] <- d1 + d2
-    #cat(a1-a0, a2-a1, "\n")
+  if(object$type == "standard"){
+    # check for numeric and factor variables  
+    numvars <- sapply(x, is.numeric)
+    catvars <- sapply(x, is.factor)
+    
+    if(!all(names(object$centers) == names(x))) warning("Variable names of newdata do not match!")
+    if(ncol(object$centers) != ncol(x)) stop("Column number of newdata does not match object!")
+    if(!all(sapply(object$centers[,numvars, drop = FALSE], is.numeric))) stop("Numeric variables of object and newdata do not match!")
+    if(!all(sapply(object$centers[,catvars, drop = FALSE], is.factor))) stop("Factor variables of object and newdata do not match!")
+    
+    # compute distances 
+    dists <- matrix(NA, nrow=nrow(x), ncol = k)
+    nrows <- nrow(x)
+    for(i in 1:k){
+      #a0 <- proc.time()[3]      
+      #d1 <- apply(x[,numvars],1, function(z) sum((z-protos[i,numvars])^2)) # euclidean for numerics
+      d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i,numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))^2
+      if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+      if(length(lambda) > 1) d1<- as.matrix(d1) %*% lambda[numvars]
+      #a1 <- proc.time()[3]      
+      #d2 <- lambda * apply(x[,catvars],1, function(z) sum((z != protos[i,catvars]))) # wtd simple matching for categorics 
+      d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
+      # fix for x data frame with only one observation according to G.Terziysky
+      if (nrows == 1) d2 <- matrix(data = d2, nrow = 1, byrow = TRUE, dimnames = list(NULL, names(x)[catvars])) # <- FIX
+      d2[is.na(d2)] <- FALSE
+      if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
+      if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
+      #a2 <- proc.time()[3]      
+      dists[,i] <- d1 + d2
+      #cat(a1-a0, a2-a1, "\n")
+    }
+  }
+
+  if(object$type == "gower"){
+    # check for numeric, ordinal and factor variables
+    numvars <- sapply(x, is.numeric)
+    anynum <- any(numvars)
+    ordvars <- sapply(x, is.ordered)
+    anyord <- any(ordvars)
+    catvars <- sapply(x, is.factor) & !ordvars
+    anyfact <- any(catvars)
+
+    # normalization numeric variables to unit range from lookup table 
+    if(any(numvars)){
+      for(jord in which(numvars)){
+        n <- names(x)[jord]
+        x[,jord] <- x[,jord] / object$stdization$num_ranges[[n]]
+        protos[,jord] <- protos[,jord] / object$stdization$num_ranges[[n]]
+      }
+    } 
+    # replace ordinal levels by standardized ranks from lookup table
+    if(any(ordvars)){
+      for(jord in which(ordvars)){
+        val <- object$stdization[[names(x)[jord]]]$value
+        names(val) <- object$stdization[[names(x)[jord]]]$level
+        x[,jord] <- val[x[,jord]]
+        protos[,jord] <- val[protos[,jord]]
+      }  
+    }
+
+    # compute distances 
+    nrows <- nrow(x)
+    dists <- matrix(NA, nrow=nrows, ncol = k)
+    for(i in 1:k){
+      
+      # in case of no numeric / factor / ordinale variables set:
+      d1 <- d2 <- d3 <- rep(0, nrows)
+      
+      if(any(numvars)){
+        d1 <- abs(x[, numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))
+        for(jnum in 1:ncol(d1)) d1[,jnum] <- d1[,jnum] / object$stdization$num_ranges[[names(d1)[jnum]]] 
+        d1[is.na(d1)] <- 0
+        if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
+        if(is.null(lambda)) d1 <- rowSums(d1)
+      }
+      
+      if(any(catvars)){
+        d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)) )
+        d2[is.na(d2)] <- FALSE
+        if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
+        if(is.null(lambda)) d2 <- rowSums(d2)
+      }
+      
+      if(any(ordvars)){
+        d3 <- abs(x[, ordvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, ordvars, drop = FALSE]), nrows), nrow=nrows, byrow=T))
+        #for(jord in 1:ncol(d3)) d3[,jord] <- d3[,jord] / rgords[jord] # different to kproto_gower() not needed -- already standardized via exported lookup table in ln. 518ff
+        d3[is.na(d3)] <- 0
+        if(length(lambda) > 1) d3 <- as.matrix(d3) %*% lambda[ordvars]
+        if(is.null(lambda)) d3 <- rowSums(d3)
+      }
+      
+      dists[,i] <- d1 + d2 + d3
+    }
+    
   }
   
   # assign clusters
@@ -689,10 +849,18 @@ lambdaest <- function(x, num.method = 1, fac.method = 1, outtype = "numeric"){
 
 
 #' @export
-print.kproto <- function(x, ...){  
+print.kproto <- function(x, ...){
+  cat("Distance type:", x$type, "\n\n")
+  
   cat("Numeric predictors:", sum(sapply(x$centers, is.numeric)), "\n")
-  cat("Categorical predictors:", sum(sapply(x$centers, is.factor)), "\n")
-  cat("Lambda:", x$lambda, "\n\n")
+  numord <- sum(sapply(x$centers, is.factor))
+  numcat <- sum(sapply(x$centers, is.factor))
+  if(x$type == "gower"){
+    cat("Ordinal predictors:", numord, "\n")
+    cat("Categorical predictors:", numcat - numord, "\n")
+  }
+  if(x$type == "standard") cat("Categorical predictors:", numcat, "\n")
+  if(!is.null(x$lambda)) cat("Lambda:", x$lambda, "\n\n")
   
   cat("Number of Clusters:", length(x$size), "\n")
   cat("Cluster sizes:", x$size, "\n")
@@ -749,7 +917,7 @@ print.kproto <- function(x, ...){
 #' @importFrom stats predict 
 #' @export
 summary.kproto <- function(object, data = NULL, pct.dig = 3, ...){
-  if(class(object) != "kproto") stop("object must be of class kproto!")
+  if(!inherits(object, "kproto")) stop("object must be of class kproto!")
   
   if(is.null(data)){
     data <- object$data
@@ -814,4 +982,49 @@ summary.kproto <- function(object, data = NULL, pct.dig = 3, ...){
 #   }
 # 
 # optilambda(x=x, k = 4, nstart = 5)
-# res <- kproto(x = x, k = k, lambda = 9.56, iter.max = iter.max, nstart=5, keep.data = keep.data)  
+# res <- kproto(x = x, k = k, lambda = 9.56, iter.max = iter.max, nstart=5, keep.data = keep.data) 
+
+
+#' @title Assign k-Prototypes Clusters
+#'
+#' @description Plot distributions of the clusters across the variables.
+#'
+#' @details Wrapper around \code{\link{clprofiles}}. Only works for \code{kproto} object created with \code{keep.data = TRUE}. 
+#' 
+#' @param x Object resulting from a call of \code{kproto}.
+#' @param \dots Additional arguments to be passet to \code{\link{clprofiles}} such as e.g. \code{vars}.
+#'
+#' @examples
+#' # generate toy data with factors and numerics
+#' 
+#' n   <- 100
+#' prb <- 0.9
+#' muk <- 1.5 
+#' clusid <- rep(1:4, each = n)
+#' 
+#' x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+#' x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+#' x1 <- as.factor(x1)
+#' 
+#' x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+#' x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+#' x2 <- as.factor(x2)
+#' 
+#' x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
+#' x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
+#' 
+#' x <- data.frame(x1,x2,x3,x4)
+#' 
+#' # apply k-prototyps
+#' kpres <- kproto(x, 4)
+#' plot(kpres, vars = c("x1","x3")) 
+#' 
+#' 
+#' @author \email{gero.szepannek@@web.de}
+#' 
+#' @rdname plot.kproto
+#' @export
+plot.kproto <- function(x, ...){
+  if(!any("data" %in% names(x))) stop("plot method for kproto objects only works for keep.data = TRUE. Use clprofiles() instead.")
+  clprofiles(x, x$data, ...)  
+}
