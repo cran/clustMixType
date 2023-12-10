@@ -310,6 +310,56 @@ test_that("resulting objects based on tau index are as expected",{
 
 
 
+context("checking stability_kproto.\n")
+
+stab <- stability_kproto(object = kpres, method = c("luxburg","fowlkesmallows"))
+
+test_that("checking input objects of stability_kproto",{
+  expect_error(stability_kproto(method = "stability", object = kpres, verbose = FALSE))
+  expect_error(stability_kproto(method = c("luxburg", "jaccard"), object = 42, verbose = FALSE))
+  expect_error(stability_kproto(method = "jaccard", object = kpres_w, verbose = FALSE))
+  expect_error(stability_kproto(method = "jaccard", object = kpres, verbose = FALSE, B = "forty-two"))
+  
+}
+)
+
+stab_1  <- stability_kproto(method = "jaccard", object = kpres, verbose = FALSE)
+stab_2  <- stability_kproto(method = c("luxburg", "jaccard"), object = kpres, verbose = FALSE)
+stab_4  <- stability_kproto(method = c("luxburg", "rand", "fowlkesmallows", "jaccard"), object = kpres, verbose = FALSE)
+
+test_that("resulting stability objects are as expected",{
+  
+  expect_is(stab_1, "list")
+  expect_true(length(stab_1) == 2)
+  expect_true(length(stab_2) == 2)
+  expect_true(length(stab_4) == 2)
+  
+  expect_is(stab_1[[1]], "numeric")
+  expect_true(length(stab_1[[1]]) == 1)
+  expect_true(length(stab_2[[1]]) == 2)
+  expect_true(length(stab_4[[1]]) == 4)
+
+  expect_true(dim(stab_1[[2]])[[2]] == 2)
+  expect_true(dim(stab_2[[2]])[[2]] == 3)
+  expect_true(dim(stab_4[[2]])[[2]] == 5)
+}
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

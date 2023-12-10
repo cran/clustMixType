@@ -46,22 +46,28 @@ kproto <- function (x, ...)
 #' @param keep.data Logical whether original should be included in the returned object.
 #' @param verbose Logical whether additional information about process should be printed. 
 #' Caution: For \code{verbose=FALSE}, if the number of clusters is reduced during the iterations it will not mentioned.
+#' @param init Character, to specify the initialization strategy. Either \code{"nbh.dens"}, \code{"sel.cen"} or \code{"nstart.m"}. Default is \code{"NULL"}, which results in nstart repetitive algorithm computations with random starting prototypes. Otherwise, \code{nstart} is not used. Argument k must be a number if a specific initialization strategy is choosen!
+#' @param p_nstart.m Numeric, probability(=0.9 is default) for \code{init="nstart.m"}, where the strategy assures that with a probability of \code{p_nstart.m} at least one of the m sets of initial prototypes contains objects of every cluster group (cf. Aschenbruck et al. (2023): Random-based Initialization for clustering mixed-type data with the k-Prototypes algorithm. In: {\emph{Cladag 2023 Book of abstracts and short spapers}}, isbn: 9788891935632.).  
 #' @param \dots Currently not used.
 #
 #' @return \code{\link{kmeans}} like object of class \code{kproto}:
 #' @return \item{cluster}{Vector of cluster memberships.}
 #' @return \item{centers}{Data frame of cluster prototypes.}
 #' @return \item{lambda}{Distance parameter lambda.}
-#' @return \item{type}{Type argument of the function call.}
 #' @return \item{size}{Vector of cluster sizes.}
 #' @return \item{withinss}{Vector of within cluster distances for each cluster, i.e. summed distances of all observations belonging to a cluster to their respective prototype.}
 #' @return \item{tot.withinss}{Target function: sum of all observations' distances to their corresponding cluster prototype.}
 #' @return \item{dists}{Matrix with distances of observations to all cluster prototypes.}
 #' @return \item{iter}{Prespecified maximum number of iterations.}
-#' @return \item{stdization}{Only returned for \code{type = "gower"}: List of standardized ranks for ordinal variables 
-#' and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
 #' @return \item{trace}{List with two elements (vectors) tracing the iteration process: 
 #' \code{tot.dists} and \code{moved} number of observations over all iterations.}
+#' @return \item{inits}{Initial prototypes determined by specified initialization strategy, if init is either 'nbh.dens' or 'sel.cen'.}
+#' @return \item{nstart.m}{only for 'init = nstart_m': determined number of randomly choosen sets.}
+#' @return \item{data}{if 'keep.data = TRUE' than the original data will be added to the output list.}
+#' @return \item{type}{Type argument of the function call.}
+#' @return \item{stdization}{Only returned for \code{type = "gower"}: List of standardized ranks for ordinal variables 
+#' and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
+
 #'   
 #' @examples
 #' # generate toy data with factors and numerics
@@ -115,10 +121,11 @@ kproto <- function (x, ...)
 #' 
 #' @importFrom stats complete.cases
 #' @importFrom tibble is_tibble 
+#' @importFrom stats qgeom
 #' 
 #' @method kproto default
 #' @export 
-kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 100, nstart = 1, na.rm = "yes", keep.data = TRUE, verbose = TRUE, ...){
+kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 100, nstart = 1, na.rm = "yes", keep.data = TRUE, verbose = TRUE, init = NULL, p_nstart.m = 0.9, ...){
   
   # enable input of tibbles
   if(is_tibble(x) == TRUE){x <- as.data.frame(x)}
@@ -170,7 +177,7 @@ kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 10
   if(!type %in% c("standard", "gower")) stop("Argument type must be either 'standard' or 'gower'!")
   if(type == "standard"){
     
-    # save origin data, befor starting the imputation process
+    # save origin data, before starting the imputation process
     if(na.rm == "imp.internal"){origin <- x}
     
     # initial error checks
@@ -190,14 +197,41 @@ kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 10
     if(!anyfact) stop("\n No factor variables in x! Try using kmeans()...\n\n")
     
     # initialize prototypes
+    if(!is.null(init)){ # determine prototypes with selected initialization strategy
+      if(length(k) == 1){
+        if(as.integer(k) != k){k <- as.integer(k); warning(paste("k has been set to", k,"!"))}
+      }else{
+        stop("Argument k must be a number if a specific initialization strategy is choosen!")
+      }
+      if(init == "nbh.dens"){
+        k <- protos_init <- f_nbh_dens(dat = x, k = k)
+      }else{
+        if(init == "sel.cen"){
+          k <- protos_init <- f_sel_cen(dat = x, k = k)
+        }else{
+          if(init == "nstart.m"){
+            N <- sum(complete.cases(x))
+
+            prob <- 1
+            for(i in 0:(k-1)){prob <- prob * (N - i * N/k)/(N - i)}
+            
+            # pgeom describes x number of failures and x+1 number of failures until 1 success.. => therefore: qgeom + 1
+            nstart <- init_nstart.m <- qgeom(p = p_nstart.m, prob = prob)+1
+          }else{
+            stop("Argument 'init' must be either 'nbh.dens','sel.cen','nstart.m' or NULL!")
+          }
+        }
+      }
+        
+    }
     if(!is.data.frame(k)){
-      if (length(k) == 1){
+      if(length(k) == 1){
         if(as.integer(k) != k){k <- as.integer(k); warning(paste("k has been set to", k,"!"))}
         if(sum(complete.cases(x)) < k) stop("Data frame has less complete observations than clusters!")
         ids <- sample(row.names(x[complete.cases(x),]), k)
         protos <- x[ids,]
       }
-      if (length(k) > 1){
+      if(length(k) > 1){
         if(nrow(x) < length(k)) stop("Data frame has less observations than clusters!")
         ids <- k
         k <- length(ids)
@@ -231,24 +265,8 @@ kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 10
       if(length(lambda) == 1) {if(lambda == 0) stop("lambda has to be a value != 0. For automatic calculation use lambda = NULL (default setting)!")}
     }
     if(is.null(lambda)){
-      if(anynum & anyfact){
-        vnum <- mean(sapply(x[,numvars, drop = FALSE], var, na.rm = TRUE))
-        vcat <- mean(sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2))))
-        if (vnum == 0){
-          if(verbose) warning("All numerical variables have zero variance.")
-          anynum <- FALSE
-        } 
-        if (vcat == 0){
-          if(verbose) warning("All categorical variables have zero variance.")
-          anyfact <- FALSE
-        } 
-        if(anynum & anyfact){
-          lambda <- vnum/vcat
-          if(verbose) cat("Estimated lambda:", lambda, "\n\n")
-        }else{
-          lambda <- 1
-        }
-      }
+      lambda <- lambdaest(x = x, num.method = 1, fac.method = 1, outtype = "numeric", verbose = FALSE)
+      if(verbose) cat("Estimated lambda:", lambda, "\n\n")
     }
     
     # deleting all incomplete observations
@@ -457,6 +475,11 @@ kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 10
                 iter = iter, 
                 trace = list(tot.dists = tot.dists, moved = moved))
     
+    # add the determined initial prototypes
+    if(!is.null(init)){
+      if(init %in% c("nbh.dens", "sel.cen")){res[["inits"]] <- protos_init}
+    }
+    
   }
   
   if(type == "gower"){
@@ -477,7 +500,10 @@ kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 10
       if(na.rm == "imp.internal"){
         x <- origin
       }
-      res.new <- kproto(x=x, k=k_input, lambda = lambda,  type = type, iter.max = iter.max, nstart=1, verbose=verbose, na.rm = na.rm)
+      res.new <- kproto(x=x, k=k_input, lambda = lambda,  type = type, iter.max = iter.max, nstart=1, verbose=verbose, na.rm = na.rm, keep.data = keep.data)
+      if(!is.null(init)){
+        if(init == "nstart.m"){res.new[["nstart.m"]] <- init_nstart.m}
+      } 
       if(res.new$tot.withinss < res$tot.withinss) res <- res.new
     }  
   
@@ -495,6 +521,165 @@ kproto.default <- function(x, k, lambda = NULL, type = "standard", iter.max = 10
   res$type <- type
   class(res) <- "kproto"
   return(res)
+}
+
+
+
+### determination of distances, required for initialization functions
+dists_kproto <- function(x, y = NULL, lambda = NULL, verbose = FALSE){
+  
+  if(is.null(y)){
+    dat_part1 <- x[rep(c(1:nrow(x)), each = nrow(x)),]
+    dat_part2 <- x[rep(c(1:nrow(x)), times = nrow(x)),]
+  }else{
+    if(nrow(x) == 1 & nrow(y) == 1){
+      return(cbind(x, y, dist = dist_kproto(x,y,lambda = lambda)))
+    }else{
+      dat_part1 <- x[rep(c(1:nrow(x)), each = nrow(y)),]
+      dat_part2 <- y[rep(c(1:nrow(y)), times = nrow(x)),]
+    }
+  }
+  
+  # check for numeric and factor variables
+  numvars <- sapply(x, is.numeric)
+  anynum <- any(numvars)
+  catvars <- sapply(x, is.factor)
+  anyfact <- any(catvars)
+  
+  # determination of lambda
+  if(length(lambda) > 1) {if(length(lambda) != sum(c(numvars,catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")}
+  if(is.null(lambda)){
+    if(anynum & anyfact){
+      vnum <- mean(sapply(x[,numvars, drop = FALSE], var, na.rm = TRUE))
+      vcat <- mean(sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2))))
+      if (vnum == 0){
+        if(verbose) warning("All numerical variables have zero variance.")
+        anynum <- FALSE
+      } 
+      if (vcat == 0){
+        if(verbose) warning("All categorical variables have zero variance.")
+        anyfact <- FALSE
+      } 
+      if(anynum & anyfact){
+        lambda <- vnum/vcat
+        if(verbose) cat("Estimated lambda:", lambda, "\n\n")
+      }else{
+        lambda <- 1
+      }
+    }
+  }
+  
+  # compute distances 
+  nrows <- nrow(x)
+  d1 <- (dat_part1[,numvars, drop = FALSE] - dat_part2[,numvars, drop = FALSE])^2
+  if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+  if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
+  d2 <- sapply(which(catvars), function(j) return(dat_part1[,j] != dat_part2[,j]))
+  d2[is.na(d2)] <- FALSE
+  if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
+  if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
+  
+  return(cbind(dat_part1, dat_part2, dist = as.vector(d1 + d2)))
+}
+
+
+
+dist_kproto <- function(x, y, lambda, verbose = FALSE){
+  
+  x <- rbind(x,y)
+  
+  # check for numeric and factor variables
+  numvars <- sapply(x, is.numeric)
+  anynum <- any(numvars)
+  catvars <- sapply(x, is.factor)
+  anyfact <- any(catvars)
+  
+  # compute distances 
+  nrows <- nrow(x)
+  d1 <- (x[1, numvars, drop = FALSE] - x[2, numvars, drop = FALSE])^2
+  if(length(lambda) == 1) d1 <- rowSums(d1, na.rm = TRUE)
+  if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
+  d2 <- sapply(which(catvars), function(j) return(x[1,j] != x[2,j]))
+  d2[is.na(d2)] <- FALSE
+  if(length(lambda) == 1) d2 <- lambda * rowSums(matrix(d2, nrow = 1))
+  if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
+  
+  return(as.numeric(d1 + d2))
+}
+
+
+
+### initial prototypes selection based on neighborhood density and distance
+f_nbh_dens <- function(dat, k){
+  
+  # determine object to save initial prototypes
+  protos_initial <- dat[0,]
+  
+  # determine distances between all pairs of objects:
+  lambda <- lambdaest(x = dat, verbose = FALSE)
+  all_dists <- dists_kproto(x = dat, lambda = lambda)
+  
+  # determine \bar{d}/2 (where \bar{d} is the average distance between all pairs of objects)
+  nbh_radius <- (sum(all_dists$dist)/(nrow(all_dists)-nrow(dat)))/2
+  
+  # determine N_e, which is the sum of h() for every object 
+  # Ne_nbh says the number of objects with distance smaller than nbh_radius for every object
+  Ne_nbh <- numeric()
+  for(i in 1:nrow(dat)){
+    # noteR: -1 because the distance between X_i and X_i is included and always < nbh_radius...
+    Ne_nbh[i] <- sum(all_dists[which(rowSums(mapply("==", dat[i,], all_dists[, 1:ncol(dat)])) == ncol(dat)), ]$dist <= nbh_radius) - 1
+  }
+  
+  # determine first initial prototype
+  arrange_index <- order(Ne_nbh, decreasing = TRUE)
+  protos_initial[1,] <- dat[arrange_index[1],]
+  
+  # determination of initial prototypes, lowering L until we have enough initis found
+  L <- nbh_radius*4 *2
+  while(nrow(protos_initial) < k){
+    # determine the other initial prototypes by comparison of objects to yet known prototypes
+    L <- L/2
+    
+    for(i in arrange_index[-1]){
+      dists <- dists_kproto(x = dat[i,, drop = FALSE], y = protos_initial, lambda = lambda)
+      ## if(any(dists$dist > L)){ 
+      # noteR: paper: !"...determine whether any M_i \in M has dist(Y_i,M_i) > L holds.
+      #        If satisfied, then Y_i is put into the set M as next prototype..
+      #        NOT MEANINGFUL, THE DISTANCE TO ALL PROTOS MUST BE > L...
+      if(all(dists$dist > L)){ #the same but other code: if(min(dist%dist) > L)
+        protos_initial <- rbind(protos_initial, dat[i,])
+      }
+    }
+  }
+  
+  return(protos_initial[1:k,])
+}
+
+
+
+# Katsavounidis (1994), He: 
+f_sel_cen <- function(dat, k){
+  
+  # determine object which has the highest 
+  # sum of distances to all other objects as first prototypes
+  lambda <- lambdaest(x = dat, verbose = FALSE)
+  all_dists <- dists_kproto(x = dat, lambda = lambda)
+  dists_matrix <- matrix(all_dists[,"dist"], ncol = nrow(dat), nrow = nrow(dat)) - diag(NA, nrow = nrow(dat))
+  protos_initial <- dat[which.max(colSums(dists_matrix, na.rm = TRUE)),]
+  
+  # determine minimal distance to initial prototypes
+  while(nrow(protos_initial) < k){
+    Dmin <- numeric()
+    for(j in 1:nrow(dat)){
+      Dmin[j] <- min(dists_kproto(x = dat[j,, drop = FALSE], y = protos_initial, lambda = lambda)$dist)
+    }
+    
+    # choose next initial prototype by highest distance to already choosen protos
+    protos_initial <- rbind(protos_initial, dat[which.max(Dmin),])
+    
+  }
+  
+  return(protos_initial)
 }
 
 
@@ -749,14 +934,15 @@ clprofiles <- function(object, x, vars = NULL, col = NULL){
 #' @details Variance (\code{num.method = 1}) or standard deviation (\code{num.method = 2}) of numeric variables 
 #' and \eqn{1-\sum_i p_i^2} (\code{fac.method = 1}) or \eqn{1-\max_i p_i} (\code{fac.method = 2}) for factors is computed.
 #' 
-#' @param x Original data.
+#' @param x Data.frame with both numerics and factors.
 #' @param num.method Integer 1 or 2. Specifies the heuristic used for numeric variables.
 #' @param fac.method Integer 1 or 2. Specifies the heuristic used for factor variables.
 #' @param outtype Specifies the desired output: either 'numeric', 'vector' or 'variation'.
+#' @param verbose Logical whether additional information about process should be printed. 
 #' 
 #' @return \item{lambda}{Ratio of averages over all numeric/factor variables is returned. 
 #' In case of \code{outtype = "vector"} the separate lambda for all variables is returned as the inverse of the single variables' 
-#' variation as specified by the \code{num.method} and \code{fac.method} argument. \code{outtype = "variation"} directly returns these quantities and is not ment to be 
+#' variation as specified by the \code{num.method} and \code{fac.method} argument. \code{outtype = "variation"} directly returns these quantities and is not meant to be 
 #' passed directly to \code{kproto()}.}
 #' 
 #' @examples
@@ -790,20 +976,27 @@ clprofiles <- function(object, x, vars = NULL, col = NULL){
 #' @importFrom stats var
 #' @importFrom stats sd
 #' @export
-lambdaest <- function(x, num.method = 1, fac.method = 1, outtype = "numeric"){
+lambdaest <- function(x, num.method = 1, fac.method = 1, outtype = "numeric", verbose = TRUE){
+  
+  # enable input of tibbles
+  if(is_tibble(x) == TRUE){x <- as.data.frame(x)}
+  
   # initial error checks
   if(!is.data.frame(x)) stop("x should be a data frame!")
+  if(nrow(x) == 1) stop("Determination for only one observation is not meaningful.")
+  if(ncol(x) < 2) stop("x should contain at least two variables!")
+  
   if(!num.method %in% 1:2) stop("Argument 'num.method' must be either 1 or 2!")
   if(!fac.method %in% 1:2) stop("Argument 'fac.method' must be either 1 or 2!")
-  if(!outtype %in% c("numeric","vector","variation")) stop("Wrong specificytion of argument 'outtype'!")
+  if(!outtype %in% c("numeric","vector","variation")) stop("Wrong specification of argument 'outtype'!")
     
   # check for numeric and factor variables
   numvars <- sapply(x, is.numeric)
   anynum <- any(numvars)
   catvars <- sapply(x, is.factor)
   anyfact <- any(catvars)
-  if(!anynum) cat("\n No numeric variables in x! \n\n")
-  if(!anyfact) cat("\n No factor variables in x! \n\n")
+  if(!anynum) stop("\n No numeric variables in x! \n\n")
+  if(!anyfact) stop("\n No factor variables in x! \n\n")
   
   if(anynum & num.method == 1) vnum <- sapply(x[,numvars, drop = FALSE], var, na.rm =TRUE)
   if(anynum & num.method == 2) vnum <- sapply(x[,numvars, drop = FALSE], sd, na.rm = TRUE)
@@ -811,39 +1004,42 @@ lambdaest <- function(x, num.method = 1, fac.method = 1, outtype = "numeric"){
   if(anyfact & fac.method == 1) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2)))
   if(anyfact & fac.method == 2) vcat <- sapply(x[,catvars, drop = FALSE], function(z) return(1-max(table(z)/sum(!is.na(z)))))
   if (mean(vnum) == 0){
-    warning("All numerical variables have zero variance.\n
-            No meaninful estimation for lambda.\n
-            Rather use kmodes{klaR} instead of kprotos().")
+    if(verbose) warning("All numerical variables have zero variance.")
     anynum <- FALSE
   } 
   if (mean(vcat) == 0){
-    warning("All categorical variables have zero variance.\n
-            No meaninful estimation for lambda!\n
-            Rather use kmeans() instead of kprotos().")
+    if(verbose) warning("All categorical variables have zero variance.")
     anyfact <- FALSE
   } 
-  if(num.method == 1) cat("Numeric variances:\n")
-  if(num.method == 2) cat("Numeric standard deviations:\n")
-  print(vnum)
-  if(num.method == 1) cat("Average numeric variance:", mean(vnum), "\n\n")
-  if(num.method == 2) cat("Average numeric standard deviation:", mean(vnum), "\n\n")
   
-  cat(paste("Heuristic for categorical variables: (method = ",fac.method,") \n", sep = ""))
-  print(vcat)
-  cat("Average categorical variation:", mean(vcat), "\n\n")
-  
-  if(anynum & anyfact) {
-    if(outtype == "numeric") {lambda <- mean(vnum)/mean(vcat); cat("Estimated lambda:", lambda, "\n\n")}
-    if(outtype != "numeric") {
-      lambda <- rep(0,ncol(x))
-      names(lambda) <- names(x)
-      lambda[numvars] <- vnum
-      lambda[catvars] <- vcat
-    }
-    if(outtype == "vector") lambda <- 1/lambda
-    return(lambda)
+  if(verbose){
+    if(num.method == 1) cat("Numeric variances:\n")
+    if(num.method == 2) cat("Numeric standard deviations:\n")
+    print(vnum)
+    if(num.method == 1) cat("Average numeric variance:", mean(vnum), "\n\n")
+    if(num.method == 2) cat("Average numeric standard deviation:", mean(vnum), "\n\n")
+    
+    cat(paste("Heuristic for categorical variables: (method = ",fac.method,") \n", sep = ""))
+    print(vcat)
+    cat("Average categorical variation:", mean(vcat), "\n\n")
   }
-  if(!(anynum & anyfact)) invisible()
+  
+  # output depending on argument 'outtype'
+  if(outtype == "numeric"){
+    lambda <- mean(vnum)/mean(vcat)
+    if(verbose) cat("Estimated lambda:", lambda, "\n\n")
+  }
+  if(outtype != "numeric"){
+    lambda <- rep(0, ncol(x))
+    names(lambda) <- names(x)
+    lambda[numvars] <- vnum
+    lambda[catvars] <- vcat
+  }
+  if(outtype == "vector"){
+    lambda <- 1/lambda
+  }
+  
+  return(lambda)
 }
 
 

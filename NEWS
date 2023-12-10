@@ -1,13 +1,31 @@
-...tbds:  - add test for allNAs and kproto_gower
-          - try to remember why has there been clprofiles and not plot.kproto so far? (...x argument for keep.data = F? ) 
+...tbds:  - check and fix PR #16 by ztime: Fix for different levels in training data and x.
+          - check double printing of #NAs when usingusing lambdaest.
+  
+          - add test for allNAs and kproto_gower
           - check NA treatment (argument + remove of NAs, ln 133ff + are they ignored if na.rm=F?)
 	        - update validation_kproto
 
+          -	clprofiles(): 
+            1) add legends for factors
+            2) check additional input parameter for a) w/o ask = T  b) specify mfrow/mfcol for simultaneous plots of several variables (+ add error check for this option if # of variables does not match grid)
+            ...is there aby potential impact on plot.kproto?
+          - try to remember why has there been clprofiles and not plot.kproto so far? (...x argument for keep.data = F? )
 
-clustMixType_0.3-9  2022-12-13   - number of test cases for validation_kproto reduced to decrease time for check on CRAN 
-                                 - fixes in kproto_gower (ln 236ff & 336ff): merging of equal prototypes (one of the for R < 4.1.0 and in ln. 328 the ordinal variables were not considered)
-                                 - fix for ordinal variables if k is data frame in kproto_gower (ln. 204ff)
-                                 - logo replaced
+clustMixType_0.3-14 2023-12-10  - validation_kproto.Rd: \itemize environment changed into \describe according to clustMixType_0.3-13 2023-12-09  - Date field changed to ISO 8601 yyyy-mm-dd format according to Rwinbuilder check note.
+                                - kproto_gower.Rd, \item{lambda}  ...\code{code}{type = "gower"}... corrected.
+clustMixType_0.3-12 2023-10-25  - implemented three initialization strategies, for which 3 help functions were added
+                                - clean up lambdaest
+                                - include lambdaest into kproto
+                                - fixed some minor typos
+                                - fixed: no output if keep.data = FALSE and nstart>1
+clustMixType_0.3-11 2023-09-05  - .rd file for stability_kproto
+                                - bugfix stability_kproto: undefined input parameter
+clustMixType_0.3-10 2023-09-01  - cluster stability determination added, along with updated tests
+                                - typos fixed in clustervalidation.R
+clustMixType_0.3-9  2022-12-13  - number of test cases for validation_kproto reduced to decrease time for check on CRAN 
+                                - fixes in kproto_gower (ln 236ff & 336ff): merging of equal prototypes (one of the for R < 4.1.0 and in ln. 328 the ordinal variables were not considered)
+                                - fix for ordinal variables if k is data frame in kproto_gower (ln. 204ff)
+                                - logo replaced
 clustMixType_0.3-8  2022-12-10  - examples from validation_kproto changed to \dontrun{} as they are too slow for CRAN submission 
 clustMixType_0.3-7  2022-12-09  - fixes according to win-builder: importFrom("stats", "median"), .Rd for na.rm and plot.kproto 
                                 - NA treatment for kproto_gower (ln. 424): cluster membership NA if all varianbles are NA. Note kproto_gower does not allow for na.rm = "yes" data with removed missings are passed from kproto(). 

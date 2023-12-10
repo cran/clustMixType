@@ -39,7 +39,7 @@ their corresponding lambda value.}
 
 \item{centers}{Data frame of cluster prototypes.}
 
-\item{lambda}{Distance parameter lambda. For \code{code}{type = "gower"} only a vector of variable specific weights is possible.}
+\item{lambda}{Distance parameter lambda. For \code{type = "gower"} only a vector of variable specific weights is possible.}
 
 \item{size}{Vector of cluster sizes.}
 

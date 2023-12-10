@@ -43,7 +43,7 @@
 #' @return \code{\link{kmeans}} like object of class \code{\link{kproto}}:
 #' @return \item{cluster}{Vector of cluster memberships.}
 #' @return \item{centers}{Data frame of cluster prototypes.}
-#' @return \item{lambda}{Distance parameter lambda. For \code{code}{type = "gower"} only a vector of variable specific weights is possible.}
+#' @return \item{lambda}{Distance parameter lambda. For \code{type = "gower"} only a vector of variable specific weights is possible.}
 #' @return \item{size}{Vector of cluster sizes.}
 #' @return \item{withinss}{Vector of within cluster distances for each cluster, i.e. summed distances of all observations belonging to a cluster to their respective prototype.}
 #' @return \item{tot.withinss}{Target function: sum of all observations' distances to their corresponding cluster prototype.}

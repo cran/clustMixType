@@ -4,21 +4,29 @@
 \alias{lambdaest}
 \title{Compares Variability of Variables}
 \usage{
-lambdaest(x, num.method = 1, fac.method = 1, outtype = "numeric")
+lambdaest(
+  x,
+  num.method = 1,
+  fac.method = 1,
+  outtype = "numeric",
+  verbose = TRUE
+)
 }
 \arguments{
-\item{x}{Original data.}
+\item{x}{Data.frame with both numerics and factors.}
 
 \item{num.method}{Integer 1 or 2. Specifies the heuristic used for numeric variables.}
 
 \item{fac.method}{Integer 1 or 2. Specifies the heuristic used for factor variables.}
 
 \item{outtype}{Specifies the desired output: either 'numeric', 'vector' or 'variation'.}
+
+\item{verbose}{Logical whether additional information about process should be printed.}
 }
 \value{
 \item{lambda}{Ratio of averages over all numeric/factor variables is returned. 
 In case of \code{outtype = "vector"} the separate lambda for all variables is returned as the inverse of the single variables' 
-variation as specified by the \code{num.method} and \code{fac.method} argument. \code{outtype = "variation"} directly returns these quantities and is not ment to be 
+variation as specified by the \code{num.method} and \code{fac.method} argument. \code{outtype = "variation"} directly returns these quantities and is not meant to be 
 passed directly to \code{kproto()}.}
 }
 \description{

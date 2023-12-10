@@ -17,6 +17,8 @@ kproto(x, ...)
   na.rm = "yes",
   keep.data = TRUE,
   verbose = TRUE,
+  init = NULL,
+  p_nstart.m = 0.9,
   ...
 )
 }
@@ -44,6 +46,10 @@ their corresponding lambda value.}
 
 \item{verbose}{Logical whether additional information about process should be printed. 
 Caution: For \code{verbose=FALSE}, if the number of clusters is reduced during the iterations it will not mentioned.}
+
+\item{init}{Character, to specify the initialization strategy. Either \code{"nbh.dens"}, \code{"sel.cen"} or \code{"nstart.m"}. Default is \code{"NULL"}, which results in nstart repetitive algorithm computations with random starting prototypes. Otherwise, \code{nstart} is not used. Argument k must be a number if a specific initialization strategy is choosen!}
+
+\item{p_nstart.m}{Numeric, probability(=0.9 is default) for \code{init="nstart.m"}, where the strategy assures that with a probability of \code{p_nstart.m} at least one of the m sets of initial prototypes contains objects of every cluster group (cf. Aschenbruck et al. (2023): Random-based Initialization for clustering mixed-type data with the k-Prototypes algorithm. In: {\emph{Cladag 2023 Book of abstracts and short spapers}}, isbn: 9788891935632.).}
 }
 \value{
 \code{\link{kmeans}} like object of class \code{kproto}:
@@ -53,8 +59,6 @@ Caution: For \code{verbose=FALSE}, if the number of clusters is reduced during t
 \item{centers}{Data frame of cluster prototypes.}
 
 \item{lambda}{Distance parameter lambda.}
-
-\item{type}{Type argument of the function call.}
 
 \item{size}{Vector of cluster sizes.}
 
@@ -66,11 +70,19 @@ Caution: For \code{verbose=FALSE}, if the number of clusters is reduced during t
 
 \item{iter}{Prespecified maximum number of iterations.}
 
-\item{stdization}{Only returned for \code{type = "gower"}: List of standardized ranks for ordinal variables 
-and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
-
 \item{trace}{List with two elements (vectors) tracing the iteration process: 
 \code{tot.dists} and \code{moved} number of observations over all iterations.}
+
+\item{inits}{Initial prototypes determined by specified initialization strategy, if init is either 'nbh.dens' or 'sel.cen'.}
+
+\item{nstart.m}{only for 'init = nstart_m': determined number of randomly choosen sets.}
+
+\item{data}{if 'keep.data = TRUE' than the original data will be added to the output list.}
+
+\item{type}{Type argument of the function call.}
+
+\item{stdization}{Only returned for \code{type = "gower"}: List of standardized ranks for ordinal variables 
+and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
 }
 \description{
 Computes k-prototypes clustering for mixed-type data.

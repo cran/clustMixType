@@ -93,6 +93,8 @@ test_that("distances are computed correctly",{
 }
 )
 
+
+
 # test missings and imputation
 
 x3 <- x4 <- x
@@ -127,6 +129,28 @@ test_that("application of different imputation strategies",{
   expect_is(kpres_ios$dists, "matrix")
   expect_false(any(is.na(kpres_ios$data)))}
 )
+
+
+
+# test initialization
+kpres <- kproto(x, 4, init = "nbh.dens", verbose = FALSE)
+test_that("testing kproto with selected initialization nbh.dens",{
+  expect_is(kpres$nstart.m, "NULL")
+  expect_is(kpres$inits, "data.frame")
+  expect_equal(nrow(kpres$inits), 4)
+  expect_equal(ncol(kpres$inits), ncol(x))
+}
+)
+kpres <- kproto(x, 4, init = "nstart.m", verbose = FALSE)
+test_that("testing kproto with selected initialization nstart.m",{
+  expect_is(kpres$inits, "NULL")
+  expect_is(kpres$nstart.m, "numeric")
+}
+)
+
+
+
+
 
 
 # test gower extension
@@ -194,3 +218,5 @@ kpres <- kproto(x = x, k = x[1:4,])
 test_that("kproto_gower works for is.data.frame(k).",{
   expect_equal(class(kpres), "kproto")}
 )
+
+

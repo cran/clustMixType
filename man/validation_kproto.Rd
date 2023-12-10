@@ -5,7 +5,7 @@
 \title{Validating k Prototypes Clustering}
 \usage{
 validation_kproto(
-  method = NULL,
+  method = "silhouette",
   object = NULL,
   data = NULL,
   k = NULL,
@@ -15,21 +15,21 @@ validation_kproto(
 )
 }
 \arguments{
-\item{method}{character specifying the validation index: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} or \code{tau}.}
+\item{method}{character specifying the validation index: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} (default) or \code{tau}.}
 
 \item{object}{Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}}
 
-\item{data}{Original data; only required if \code{object == NULL} and neglected if \code{object != NULL}.}
+\item{data}{Original data; only required if \code{object == NULL} and neglected if \code{object != NULL}}
 
 \item{k}{Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL} and neglected if \code{object != NULL}.}
 
 \item{lambda}{Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.}
 
-\item{kp_obj}{character either "optimal" or "all": Output of the index-optimal clustering (kp_obj == "optimal") or all computed clusterpartitions (kp_obj == "all"); only required if \code{object != NULL}.}
+\item{kp_obj}{character either "optimal" or "all": Output of the index-optimal clustering (kp_obj == "optimal") or all computed cluster partitions (kp_obj == "all"); only required if \code{object != NULL}.}
 
 \item{...}{Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
 \itemize{
-  \item \code{nstart}: If > 1 repetetive computations of \code{kproto} with random initializations are computed.
+  \item \code{nstart}: If > 1 repetitive computations of \code{kproto} with random initializations are computed.
   \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
 }}
 }
@@ -49,53 +49,53 @@ For computing the index-value for a given k-Prototype clustering the output cont
 \item{index}{calculated index-value}
 }
 \description{
-Calculating the prefered validation index for a k-Prototypes clustering with k clusters or computing the optimal number of clusters based on the choosen index for k-Prototype clustering. Possible validation indices are: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} and \code{tau}.
+Calculating the preferred validation index for a k-Prototypes clustering with k clusters or computing the optimal number of clusters based on the choosen index for k-Prototype clustering. Possible validation indices are: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} and \code{tau}.
 }
 \details{
 More information about the implemented validation indices:
   \itemize{
-    \item{\code{cindex}} {\deqn{Cindex = \frac{S_w-S_{min}}{S_{max}-S_{min}}} \cr
-For \eqn{S_{min}} and \eqn{S_{max}} it is nessesary to calculate the distances between all pairs of points in the entire data set (\eqn{\frac{n(n-1)}{2}}). 
+    \item \code{cindex} \deqn{Cindex = \frac{S_w-S_{min}}{S_{max}-S_{min}}} \cr
+For \eqn{S_{min}} and \eqn{S_{max}} it is necessary to calculate the distances between all pairs of points in the entire data set (\eqn{\frac{n(n-1)}{2}}). 
 \eqn{S_{min}} is the sum of the "total number of pairs of objects belonging to the same cluster" smallest distances and 
 \eqn{S_{max}} is the sum of the "total number of pairs of objects belonging to the same cluster" largest distances. \eqn{S_w} is the sum of the within-cluster distances. \cr
 The minimum value of the index is used to indicate the optimal number of clusters.
-    }
-    \item{\code{dunn}}{\deqn{Dunn = \frac{\min_{1 \leq i < j \leq q} d(C_i, C_j)}{\max_{1 \leq k \leq q} diam(C_k)}} \cr
+
+    \item \code{dunn} \deqn{Dunn = \frac{\min_{1 \leq i < j \leq q} d(C_i, C_j)}{\max_{1 \leq k \leq q} diam(C_k)}} \cr
 The following applies: The dissimilarity between the two clusters \eqn{C_i} and \eqn{C_j} is defined as \eqn{d(C_i, C_j)=\min_{x \in C_i, y \in C_j} d(x,y)} and
 the diameter of a cluster is defined as \eqn{diam(C_k)=\max_{x,y \in C} d(x,y)}. \cr
 The maximum value of the index is used to indicate the optimal number of clusters.
-    }
-    \item{\code{gamma}}{\deqn{Gamma = \frac{s(+)-s(-)}{s(+)+s(-)}} \cr 
+
+    \item \code{gamma} \deqn{Gamma = \frac{s(+)-s(-)}{s(+)+s(-)}} \cr 
 Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
 \eqn{s(+)} is the number of concordant comparisons and \eqn{s(-)} is the number of discordant comparisons.
 A comparison is named concordant (resp. discordant) if a within-cluster dissimilarity is strictly less (resp. strictly greater) than a between-cluster dissimilarity.\cr
 The maximum value of the index is used to indicate the optimal number of clusters.
-    }
-    \item{\code{gplus}}{\deqn{Gplus = \frac{2 \cdot s(-)}{\frac{n(n-1)}{2} \cdot (\frac{n(n-1)}{2}-1)}} \cr 
+
+    \item \code{gplus} \deqn{Gplus = \frac{2 \cdot s(-)}{\frac{n(n-1)}{2} \cdot (\frac{n(n-1)}{2}-1)}} \cr 
 Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
 \eqn{s(-)} is the number of discordant comparisons and a comparison is named discordant if a within-cluster 
 dissimilarity is strictly greater than a between-cluster dissimilarity. \cr
 The minimum value of the index is used to indicate the optimal number of clusters.
-    }
-    \item{\code{mcclain}}{\deqn{McClain = \frac{\bar{S}_w}{\bar{S}_b}} \cr 
+
+    \item \code{mcclain} \deqn{McClain = \frac{\bar{S}_w}{\bar{S}_b}} \cr 
 \eqn{\bar{S}_w} is the sum of within-cluster distances divided by the number of within-cluster distances and 
 \eqn{\bar{S}_b} is the sum of between-cluster distances divided by the number of between-cluster distances.\cr
 The minimum value of the index is used to indicate the optimal number of clusters.
-    }
-    \item{\code{ptbiserial}}{\deqn{Ptbiserial = \frac{(\bar{S}_b-\bar{S}_w) \cdot (\frac{N_w \cdot N_b}{N_t^2})^{0.5}}{s_d}} \cr 
+
+    \item\code{ptbiserial} \deqn{Ptbiserial = \frac{(\bar{S}_b-\bar{S}_w) \cdot (\frac{N_w \cdot N_b}{N_t^2})^{0.5}}{s_d}} \cr 
 \eqn{\bar{S}_w} is the sum of within-cluster distances divided by the number of within-cluster distances and 
 \eqn{\bar{S}_b} is the sum of between-cluster distances divided by the number of between-cluster distances.\cr
 \eqn{N_t} is the total number of pairs of objects in the data, \eqn{N_w} is the total number of pairs of 
-objects belonging to the samecluster and \eqn{N_b} is the total number of pairs of objects belonging to different clusters.
+objects belonging to the same cluster and \eqn{N_b} is the total number of pairs of objects belonging to different clusters.
 \eqn{s_d} is the standard deviation of all distances.\cr
 The maximum value of the index is used to indicate the optimal number of clusters.
-    }
-    \item{\code{silhouette}}{\deqn{Silhouette = \frac{1}{n} \sum_{i=1}^n \frac{b(i)-a(i)}{max(a(i),b(i))}} \cr 
+
+    \item \code{silhouette} \deqn{Silhouette = \frac{1}{n} \sum_{i=1}^n \frac{b(i)-a(i)}{max(a(i),b(i))}} \cr 
 \eqn{a(i)} is the average dissimilarity of the i\emph{th} object to all other objects of the same/own cluster.
 \eqn{b(i)=min(d(i,C))}, where \eqn{d(i,C)} is the average dissimilarity of the i\emph{th} object to all the other clusters except the own/same cluster.\cr
 The maximum value of the index is used to indicate the optimal number of clusters.
-    }
-    \item{\code{tau}}{\deqn{Tau = \frac{s(+) - s(-)}{((\frac{N_t(N_t-1)}{2}-t)\frac{N_t(N_t-1)}{2})^{0.5}}} \cr 
+    
+    \item \code{tau} \deqn{Tau = \frac{s(+) - s(-)}{((\frac{N_t(N_t-1)}{2}-t)\frac{N_t(N_t-1)}{2})^{0.5}}} \cr 
 Comparisons are made between all within-cluster dissimilarities and all between-cluster dissimilarities. 
 \eqn{s(+)} is the number of concordant comparisons and \eqn{s(-)} is the number of discordant comparisons.
 A comparison is named concordant (resp. discordant) if a within-cluster dissimilarity is strictly less 
@@ -104,7 +104,7 @@ A comparison is named concordant (resp. discordant) if a within-cluster dissimil
 of two pairs of objects where both pairs represent within-cluster comparisons or both pairs are between-cluster
 comparisons. \cr
 The maximum value of the index is used to indicate the optimal number of clusters.
-    }
+   
   }
 }
 \examples{
