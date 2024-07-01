@@ -8,18 +8,22 @@ validation_kproto(
   method = "silhouette",
   object = NULL,
   data = NULL,
+  type = "huang",
   k = NULL,
   lambda = NULL,
   kp_obj = "optimal",
+  verbose = FALSE,
   ...
 )
 }
 \arguments{
-\item{method}{character specifying the validation index: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} (default) or \code{tau}.}
+\item{method}{Character specifying the validation index: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} (default) or \code{tau}.}
 
-\item{object}{Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}}
+\item{object}{Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}.}
 
-\item{data}{Original data; only required if \code{object == NULL} and neglected if \code{object != NULL}}
+\item{data}{Original data; only required if \code{object == NULL} and neglected if \code{object != NULL}.}
+
+\item{type}{Character, to specify the distance for clustering; either \code{"huang"} or \code{"gower"}.}
 
 \item{k}{Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL} and neglected if \code{object != NULL}.}
 
@@ -27,10 +31,12 @@ validation_kproto(
 
 \item{kp_obj}{character either "optimal" or "all": Output of the index-optimal clustering (kp_obj == "optimal") or all computed cluster partitions (kp_obj == "all"); only required if \code{object != NULL}.}
 
+\item{verbose}{Logical, whether additional information about process should be printed.}
+
 \item{...}{Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
 \itemize{
   \item \code{nstart}: If > 1 repetitive computations of \code{kproto} with random initializations are computed.
-  \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
+  \item \code{na.rm}: Character, either \code{"yes"} to strip \code{NA} values for complete case analysis, \code{"no"} to keep and ignore \code{NA} values, \code{"imp.internal"} to impute the \code{NAs} within the algorithm or \code{"imp.onestep"} to apply the algorithm ignoring the \code{NAs} and impute them after the partition is determined.
 }}
 }
 \value{

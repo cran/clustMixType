@@ -104,9 +104,8 @@ test_that("message for NAs.",{
   expect_message(kproto(x3, 4),"Observations with NAs are removed.")
   expect_warning(kproto(x4, 4, na.rm = "no"),"No meaningful cluster assignment possible for observations where all variables NA.")
   expect_error(kproto(x3, 4, na.rm = "not"), "Argument na.rm must be either 'yes','no','imp.internal' or 'imp.onestep'!")
-  #expect_message(kproto(x3, 4, na.rm = TRUE),"Argument definition na.rm changed. Please update your code and use either 'yes','no','imp.internal' or 'imp.onestep'.")
   expect_message(kproto(x3, 4, na.rm = TRUE),"Logical input for na.rm is deprecated. Please use either 'yes','no','imp.internal' or 'imp.onestep'.\n")
-  expect_error(kproto(x3, 4, na.rm = "imp.onestep", type = "gower"), "Argument na.rm must be either 'yes' or 'no', since imputation is not yet implemented for type = 'gower'!")}
+  expect_error(kproto(x3, 4, na.rm = "imp.internal", type = "gower"), "Argument na.rm must be either 'yes','no' or 'imp-onestep', since imp.internal is not yet implemented for type = 'gower'!")}
 )
 
 prototypes <- data.frame(V1 = factor(c("A","B")), V2 = c(-3,3)) 
@@ -175,12 +174,12 @@ x <- data.frame(x1, x2)
 
 kpres <- kproto(x = x, k = 4)
 test_that("Standard still works if ordered factors.",{
-  expect_equal(kpres$type, "standard")}
+  expect_equal(kpres$type, "huang")}
 )
 
 kpres <- kproto(x = x, k = 4, type = "standard")
 test_that("Standard still works if ordered factors.",{
-  expect_equal(kpres$type, "standard")}
+  expect_equal(kpres$type, "huang")}
 )
 
 kpres <- kproto(x = x, k = 4, type = "gower")

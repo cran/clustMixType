@@ -1,77 +1,236 @@
 
 
 
-create.S_w_kpa <- function(object){
-  numvars <- sapply(object$data, is.numeric)
-  catvars <- sapply(object$data, is.factor)
+calc.dist <- function(type, lambda, data1, data2 = NULL, all.dists = FALSE, data_plus = NULL){
+  
+  if(type == "huang"){# calculation with standard distance of k-prototypes
+    
+    # if(is.null(lambda)){
+    #   lambda <- lambdaest(data, num.method = 1, fac.method = 1, outtype = "numeric", verbose = TRUE)
+    # }
+    
+    if(!is.null(data2)){#contains the input two datasets?
+      
+      #tbd: check if structure of data1 and data2 are equal
+      data <- rbind(data1, data2)
+      
+      if(nrow(data1) == 1 & nrow(data2) == 1){#calculation the distance between two observations (due to saving time)
+        
+        #numerical variables
+        d1 <- (data[1, data_plus$numvars, drop = FALSE]-data[2, data_plus$numvars, drop = FALSE])^2
+        d1[is.na(d1)] <- 0
+        if(length(lambda) == 1){
+          d1 <- sum(d1)
+        }else{ #length(lambda) > 1
+          d1 <- as.matrix(d1, nrow = 1) %*% matrix(lambda[data_plus$numvars], ncol = 1)
+        }
+        
+        #categorical variables
+        d2 <- sapply(which(data_plus$catvars), function(j) return(data[1,j] != data[2,j]))
+        d2[is.na(d2)] <- FALSE
+        if(length(lambda) == 1){
+          d2 <- lambda * sum(d2)
+        }else{#length(lambda) > 1
+          d2 <- matrix(d2, nrow = 1) %*% matrix(lambda[data_plus$catvars], ncol = 1)
+        }
+        
+        return(d1 + d2)
+      }else{#calculate distances between objects of two datasets
+        
+        #numerical variables
+        d1 <- (data1[rep(1:nrow(data1), each=nrow(data2)), data_plus$numvars, drop = FALSE] -
+                 data2[rep(1:nrow(data2), times=nrow(data1)), data_plus$numvars, drop = FALSE])^2
+        d1[is.na(d1)] <- 0
+        if(length(lambda) == 1){
+          d1 <- rowSums(d1)
+        }else{ #length(lambda) > 1
+          d1 <- as.matrix(d1) %*% lambda[data_plus$numvars]
+        }
+        
+        #categorical variables
+        d2 <- data1[rep(1:nrow(data1), each=nrow(data2)), data_plus$catvars, drop = FALSE] != 
+          data2[rep(1:nrow(data2), times = nrow(data1)), data_plus$catvars, drop = FALSE]
+        d2[is.na(d2)] <- FALSE
+        if(length(lambda) == 1){
+          d2 <- lambda * rowSums(d2)
+        }else{ #length(lambda) > 1
+          d2 <- as.matrix(d2) %*% lambda[data_plus$catvars]
+        }
+        
+        return(sum(d1 + d2))
+      }
+    }else{ #calculate distances between the objects of one dataset
+      
+      d1 <- (data1[rep(1:(nrow(data1)-1),times=(nrow(data1)-1):1, each=1), data_plus$numvars, drop = FALSE] -
+               data1[unlist(lapply(2:nrow(data1), seq, to=nrow(data1))), data_plus$numvars, drop = FALSE])^2
+      d1[is.na(d1)] <- 0
+      if(length(lambda) == 1) d1 <- rowSums(d1)
+      if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[data_plus$numvars]
+      
+      d2 <- data1[rep(1:(nrow(data1)-1),times=(nrow(data1)-1):1, each=1), data_plus$catvars, drop = FALSE] != 
+        data1[unlist(lapply(2:nrow(data1), seq, to=nrow(data1))), data_plus$catvars, drop = FALSE]
+      d2[is.na(d2)] <- FALSE
+      if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
+      if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[data_plus$catvars]
+      
+      if(all.dists == TRUE){
+        m <- matrix(rep(0,nrow(data1)^2), ncol = nrow(data1))
+        
+        m[lower.tri(m)] <- d1+d2
+        m <- t(m)
+        m[lower.tri(m)] <- d1+d2
+        return(m)
+      }else{
+        return(sum(d1 + d2))
+      }
+    }
+  }else{ #calculation with gower distance
+    
+    if(!is.null(data2)){#contains the input two datasets?
+      
+      #tbd: check if structure of data1 and data2 are equal
+      #data <- rbind(data1, data2)
+      
+      if(nrow(data1) == 1 & nrow(data2) == 1){#calculation the distance between two observations (due to saving time)
+        
+        d1 <- d2 <- d3 <- 0
+        
+        if(any(data_plus$numvars)){
+          d1 <- abs(data1[1, data_plus$numvars, drop = FALSE] - data2[1, data_plus$numvars, drop = FALSE])
+          for(jnum in 1:ncol(d1)) d1[,jnum] <- d1[,jnum] / data_plus$rgnums[jnum] 
+          d1[is.na(d1)] <- 0
+          if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[data_plus$numvars]
+          if(is.null(lambda)) d1 <- rowSums(d1)
+        }
+        
+        if(any(data_plus$catvars)){
+          d2 <- data1[1, data_plus$catvars, drop = FALSE] != data2[1, data_plus$catvars, drop = FALSE]
+          d2[is.na(d2)] <- FALSE
+          if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[data_plus$catvars]
+          if(is.null(lambda)) d2 <- rowSums(d2)
+        }
+        
+        if(any(data_plus$ordvars)){
+          d3 <- abs(data1[1, data_plus$ordvars, drop = FALSE] - data2[1, data_plus$ordvars, drop = FALSE])
+          for(jord in 1:ncol(d3)) d3[,jord] <- d3[,jord] / data_plus$rgords[jord] 
+          d3[is.na(d3)] <- 0
+          if(length(lambda) > 1) d3 <- as.matrix(d3) %*% lambda[data_plus$ordvars]
+          if(is.null(lambda)) d3 <- rowSums(d3)
+        }
+        
+        return(d1 + d2 + d3)
+        
+      }else{#calculate distances between objects of two datasets
+        
+        # in case of no numeric / factor / ordinal variables set:
+        d1 <- d2 <- d3 <- rep(0, nrow(data1)*nrow(data2))
+        
+        if(any(data_plus$numvars)){
+          d1 <- abs(data1[rep(1:nrow(data1), each=nrow(data2)), data_plus$numvars, drop = FALSE] - 
+                      data2[rep(1:nrow(data2), times=nrow(data1)), data_plus$numvars, drop = FALSE])
+          for(jnum in 1:ncol(d1)) d1[,jnum] <- d1[,jnum] / data_plus$rgnums[jnum] 
+          #time efficient alternative for codeline before:
+          # d1 <- d1 / rep(data_plus$rgnums, rep(nrow(d1), ncol(d1)))
+          d1[is.na(d1)] <- 0
+          if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[data_plus$numvars]
+          if(is.null(lambda)) d1 <- rowSums(d1)
+        }
+        
+        if(any(data_plus$catvars)){
+          d2 <- data1[rep(1:nrow(data1), each=nrow(data2)), data_plus$catvars, drop = FALSE] != 
+            data2[rep(1:nrow(data2), times = nrow(data1)), data_plus$catvars, drop = FALSE]
+          d2[is.na(d2)] <- FALSE
+          if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[data_plus$catvars]
+          if(is.null(lambda)) d2 <- rowSums(d2)
+        }
+        
+        if(any(data_plus$ordvars)){
+          d3 <- abs(data1[rep(1:nrow(data1), each=nrow(data2)), data_plus$ordvars, drop = FALSE] - 
+                      data2[rep(1:nrow(data2), times=nrow(data1)), data_plus$ordvars, drop = FALSE])
+          for(jord in 1:ncol(d3)) d3[,jord] <- d3[,jord] / data_plus$rgords[jord] 
+          #time efficient alternative for codeline before:
+          # d3 <- d3 / rep(data_plus$rgords, rep(nrow(d3), ncol(d3)))
+          d3[is.na(d3)] <- 0
+          if(length(lambda) > 1) d3 <- as.matrix(d3) %*% lambda[data_plus$ordvars]
+          if(is.null(lambda)) d3 <- rowSums(d3)
+        }
+        
+        return(sum(d1 + d2 + d3))
+      }
+    }else{ #calculate distances between the objects of one dataset
+      
+      d1 <- d2 <- d3 <- rep(0,length(rep(1:(nrow(data1)-1),times=(nrow(data1)-1):1, each=1)))
+      
+      if(any(data_plus$numvars)){
+        d1 <- abs(data1[rep(1:(nrow(data1)-1),times=(nrow(data1)-1):1, each=1), data_plus$numvars, drop = FALSE] - 
+                    data1[unlist(lapply(2:nrow(data1), seq, to=nrow(data1))), data_plus$numvars, drop = FALSE])
+        for(jnum in 1:ncol(d1)) d1[,jnum] <- d1[,jnum] / data_plus$rgnums[jnum] 
+        #time efficient alternative for codeline before:
+        # d1 <- d1 / rep(rgnums, rep(nrow(d1), ncol(d1)))
+        d1[is.na(d1)] <- 0
+        if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[data_plus$numvars]
+        if(is.null(lambda)) d1 <- rowSums(d1)
+      }
+      
+      if(any(data_plus$catvars)){
+        d2 <- data1[rep(1:(nrow(data1)-1),times=(nrow(data1)-1):1, each=1), data_plus$catvars, drop = FALSE] != 
+          data1[unlist(lapply(2:nrow(data1), seq, to=nrow(data1))), data_plus$catvars, drop = FALSE]
+        d2[is.na(d2)] <- FALSE
+        if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[data_plus$catvars]
+        if(is.null(lambda)) d2 <- rowSums(d2)
+      }
+      
+      if(any(data_plus$ordvars)){
+        d3 <- abs(data1[rep(1:(nrow(data1)-1),times=(nrow(data1)-1):1, each=1), data_plus$ordvars, drop = FALSE] - 
+                    data1[unlist(lapply(2:nrow(data1), seq, to=nrow(data1))), data_plus$ordvars, drop = FALSE])
+        for(jord in 1:ncol(d3)) d3[,jord] <- d3[,jord] / data_plus$rgords[jord] 
+        d3[is.na(d3)] <- 0
+        if(length(lambda) > 1) d3 <- as.matrix(d3) %*% lambda[data_plus$ordvars]
+        if(is.null(lambda)) d3 <- rowSums(d3)
+      }
+      
+      if(all.dists == TRUE){ #return distance matrix
+        m <- matrix(rep(0,nrow(data1)^2), ncol = nrow(data1))
+        
+        m[lower.tri(m)] <- d1+d2+d3
+        m <- t(m)
+        m[lower.tri(m)] <- d1+d2+d3
+        return(m)
+      }else{ #return the sum of all dists between objects
+        return(sum(d1 + d2 + d3))
+      }
+      
+    }
+  }
+}
+
+
+create.S_w <- function(object, data_plus){
   S_w <- 0
   for(k in seq_along(object$size)){
     x_k <- object$data[which(object$cluster==k),]
     if(object$size[k]>1){
-
-      d1 <- (x_k[rep(1:(object$size[k]-1),times=(object$size[k]-1):1, each=1), numvars, drop = FALSE] -
-               x_k[unlist(lapply(2:object$size[k], seq, to=object$size[k])), numvars, drop = FALSE])^2
-      d1[is.na(d1)] <- 0
-      if(length(object$lambda) == 1) d1 <- rowSums(d1)
-      if(length(object$lambda) > 1) d1 <- as.matrix(d1) %*% object$lambda[numvars]
-      
-      d2 <- x_k[rep(1:(object$size[k]-1),times=(object$size[k]-1):1, each=1),
-                catvars, drop = FALSE] != x_k[unlist(lapply(2:object$size[k], seq, to=object$size[k])), catvars, drop = FALSE]
-      d2[is.na(d2)] <- FALSE
-      if(length(object$lambda) == 1) d2 <- object$lambda * rowSums(d2)
-      if(length(object$lambda) > 1) d2 <- as.matrix(d2) %*% object$lambda[catvars]
-      
-      S_w <- S_w + sum(d1 + d2)
+      S_w <- S_w + calc.dist(lambda = object$lambda, type = object$type, 
+                             data1 = x_k, 
+                             data_plus = data_plus)
     }
   }
   return(S_w)
 }
 
 
-create.S_b_kpa <- function(object){
-  numvars <- sapply(object$data, is.numeric)
-  catvars <- sapply(object$data, is.factor)
+create.S_b <- function(object, data_plus){
   S_b <- 0
   for(k in 1:(length(object$size)-1)){
     x_k <- object$data[which(object$cluster==k),]
     for(l in (k+1):length(object$size)){
-      x_l <- object$data[which(object$cluster==l),]
-      
-      d1 <- (x_k[rep(1:object$size[k], each=object$size[l]), numvars, drop = FALSE] -
-               x_l[rep(1:object$size[l], times=object$size[k]), numvars, drop = FALSE])^2
-      d1[is.na(d1)] <- 0
-      if(length(object$lambda) == 1) d1 <- rowSums(d1)
-      if(length(object$lambda) > 1) d1 <- as.matrix(d1) %*% object$lambda[numvars]
-
-      d2 <- x_k[rep(1:object$size[k], each=object$size[l]),
-                catvars, drop = FALSE] != x_l[rep(1:object$size[l], times = object$size[k]), catvars, drop = FALSE]
-      d2[is.na(d2)] <- FALSE
-      if(length(object$lambda) == 1) d2 <- object$lambda * rowSums(d2)
-      if(length(object$lambda) > 1) d2 <- as.matrix(d2) %*% object$lambda[catvars]
-
-      S_b <- S_b + sum(d1 + d2)
+      S_b <- S_b + calc.dist(type = object$type, lambda = object$lambda,
+                             data1 = x_k, 
+                             data2 = object$data[which(object$cluster==l),], 
+                             data_plus = data_plus)
     }
   }
   return(S_b)
-}
-
-
-create.dist_kpa <- function(lambda = NULL, data1, data2){
-  data <- rbind(data1, data2)
-  numvars <- sapply(data, is.numeric)
-  catvars <- sapply(data, is.factor)
-  
-  d1 <- (data[1,numvars, drop = FALSE]-data[2,numvars, drop = FALSE])^2
-  d1[is.na(d1)] <- 0
-  if(length(lambda) == 1) d1 <- sum(d1)
-  if(length(lambda) > 1) d1 <- as.matrix(d1, nrow = 1) %*% matrix(lambda[numvars], ncol = 1)
-  
-  d2 <- sapply(which(catvars), function(j) return(data[1,j] != data[2,j]))
-  d2[is.na(d2)] <- FALSE
-  if(length(lambda) == 1) d2 <- lambda * sum(d2)
-  if(length(lambda) > 1) d2 <- matrix(d2, nrow = 1) %*% matrix(lambda[catvars], ncol = 1)
-  
-  return(d1 + d2)
 }
 
 
@@ -82,70 +241,77 @@ create.N_w <- function(object){
 
 
 
-cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, kp_obj = "optimal", lambda = NULL, ...){
+cindex_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, S_sort = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
-  if(!is.null(object)){
-    if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
+  if(!is.null(object)){# it follows: determine the index value of the given cluster partition
     
     if(is.null(S_sort)){
       n <- length(object$cluster)
       S_all <- matrix(numeric(), ncol = n, nrow = n)
       for(i in 1:(n - 1)){
         for(j in (i + 1):n){
-          S_all[i,j] <- create.dist_kpa(lambda = object$lambda, data1 = object$data[i,], data2 = object$data[j,])
+          S_all[i,j] <- calc.dist(type = object$type, lambda = object$lambda,
+                                  data1 = object$data[i,], data2 = object$data[j,],
+                                  data_plus = data_plus)
+          
         }
       }
       S_sort <- sort(S_all)
     }
     
-    S_w_kpa <- create.S_w_kpa(object)
+    S_w <- create.S_w(object, data_plus = data_plus)
     
     N_w <- create.N_w(object)
     S_min <- sum(head(S_sort,n = N_w))
     S_max <- sum(tail(S_sort,n = N_w))
     
     if(S_min != S_max){
-      index <- (S_w_kpa - S_min)/(S_max - S_min)
+      index <- (S_w - S_min)/(S_max - S_min)
     }
     
     return(index)
-  }else{
+  }else{# determine index-optimal cluster partition
+    
     n <- nrow(data)
-    p <- ncol(data)
-    
-    if(is.null(lambda)){
-      numvars <- sapply(data, is.numeric)
-      anynum <- any(numvars)
-      catvars <- sapply(data, is.factor)
-      anyfact <- any(catvars)
-      vnum <- mean(sapply(data[,numvars, drop = FALSE], var, na.rm = TRUE))
-      vcat <- mean(sapply(data[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2))))
-      lambda <- vnum/vcat
-    }
-    
     S_all <- matrix(numeric(), ncol=n, nrow=n)
     for(i in 1:(n - 1)){
       for(j in (i + 1):n){
-        S_all[i,j] <- create.dist_kpa(lambda = lambda, data1 = data[i,], data2 = data[j,])
+        S_all[i,j] <- calc.dist(type = type, lambda = lambda, 
+                                data1 = data[i,], data2 = data[j,],
+                                data_plus = data_plus)
       }
     }
     S_sort <- sort(S_all)
     
-    if(is.null(k)){k <- 2:sqrt(n)}
-    
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE, lambda = lambda, ...)
-    trace_kp <- list(list("index" = cindex_kproto(object = object, S_sort = S_sort), 
+    if(type == "gower"){
+      # ...replace ranks with original ordered values
+      data[,which(data_plus$ordvars)] <- data_plus$data_ord
+    }
+    object <- kproto(x = data, k = k[1], type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
+    if(type == "gower"){
+      # ...replace ranks with original ordered values
+      for(jord in which(data_plus$ordvars)) object$data[,jord] <- rank(data[,jord])
+    }
+    trace_kp <- list(list("index" = cindex_kproto(object = object, S_sort = S_sort, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      if(type == "gower"){
+        # ...replace ranks with original ordered values
+        data[,which(data_plus$ordvars)] <- data_plus$data_ord
+      }
+      object <- kproto(x = data, k = q, type = type, keep.data = TRUE, lambda = lambda, verbose = verbose)#, ...)
+      if(type == "gower"){
+        # ...replace ranks with original ordered values
+        for(jord in which(data_plus$ordvars)) object$data[,jord] <- rank(data[,jord])
+      }
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = cindex_kproto(object = object, S_sort = S_sort), 
-                                        "k" = length(object$size), "object" = object)))
+        trace_kp <- c(trace_kp, list(list("index" = cindex_kproto(object = object, S_sort = S_sort, data_plus = data_plus), 
+                                          "k" = length(object$size), "object" = object)))
       }else{
-        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- cindex_kproto(object = object, S_sort = S_sort)
+        # save kproto object if there is a cluster partition with same number of cluster but different validation index
+        index_value <- cindex_kproto(object = object, S_sort = S_sort, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -163,22 +329,24 @@ cindex_kproto <- function(object = NULL, data = NULL, k = NULL, S_sort = NULL, k
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
   }
 }
 
 
-dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal", lambda = NULL, ...){
+dunn_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
+  cond <- FALSE
   if(!is.null(object)){
-    if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
-    numvars <- sapply(object$data, is.numeric)
-    cond <- all(!as.logical(numvars*object$lambda))
+    if(!is.null(object$lambda)){
+      cond <- all(!as.logical(data_plus$numvars*object$lambda))
+    }
   }else{
-    numvars <- sapply(data, is.numeric)
-    cond <- all(!as.logical(numvars*lambda))
+    if(!is.null(lambda)){
+      cond <- all(!as.logical(data_plus$numvars*lambda))
+    }
   }
   if(cond) message("As a result of the choice of lambda: No numeric variables in x! Index calculation might result in NA...\n")
   
@@ -192,10 +360,14 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
       xi <- object$data[which(object$cluster == i),]
       for(j in (i+1):k){
         xj <- object$data[which(object$cluster == j),]
-        min_ij <- create.dist_kpa(object$lambda, data1 = xi[1,], data2 = xj[1,])
+        min_ij <- calc.dist(type = object$type, lambda = object$lambda, 
+                            data1 = xi[1,], data2 = xj[1,],
+                            data_plus = data_plus)
         for(l in 1:object$size[i]){
           for(m in 1:object$size[j]){
-            min_neu <- create.dist_kpa(object$lambda, data1 = xi[l,], data2 = xj[m,])
+            min_neu <- calc.dist(type = object$type, lambda = object$lambda, 
+                                 data1 = xi[l,], data2 = xj[m,],
+                                 data_plus = data_plus)
             if(min_neu < min_ij){
               min_ij <- min_neu
             }
@@ -217,10 +389,14 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
     for(p in 1:k){
       xi <- object$data[which(object$cluster == p),]
       if(object$size[p] > 1){
-        max_ij <- create.dist_kpa(object$lambda, data1 = xi[1,], data2 = xi[2,])
+        max_ij <- calc.dist(type = object$type, lambda = object$lambda, 
+                            data1 = xi[1,], data2 = xi[2,],
+                            data_plus = data_plus)
         for(l in 1:(object$size[p]-1)){
           for(m in (l+1):(object$size[p])){
-            max_neu <- create.dist_kpa(object$lambda, data1 = xi[l,], data2 = xi[m,])
+            max_neu <- calc.dist(type = object$type, lambda = object$lambda, 
+                                 data1 = xi[l,], data2 = xi[m,],
+                                 data_plus = data_plus)
             if(max_neu > max_ij){
               max_ij <- max_neu
             }
@@ -239,23 +415,21 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
     
     
   }else{
-    n <- nrow(data) 
-    
-    if(is.null(k)){k <- 2:sqrt(n)}
+    n <- nrow(data)
     
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE, lambda = lambda, ...)
-    trace_kp <- list(list("index" = dunn_kproto(object = object), 
+    object <- kproto(x = data, k = k[1], type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
+    trace_kp <- list(list("index" = dunn_kproto(object = object, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      object <- kproto(x = data, k = q, type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = dunn_kproto(object = object), 
+        trace_kp <- c(trace_kp, list(list("index" = dunn_kproto(object = object, data_plus = data_plus), 
                                           "k" = length(object$size), "object" = object)))
       }else{
         # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- dunn_kproto(object = object)
+        index_value <- dunn_kproto(object = object, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -274,25 +448,26 @@ dunn_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal"
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
-
+    
   }
 }
 
 
-gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", lambda = NULL, ...){
+gamma_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
   if(!is.null(object)){
-    if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
     
     if(is.null(dists)){
       n <- nrow(object$data)
       dists <- matrix(numeric(), nrow = n, ncol = n)
       for(i in 1:(n - 1)){
         for(j in (i + 1):n){
-          dists[i,j] <- create.dist_kpa(object$lambda, data1 = object$data[i,], data2 = object$data[j,])
+          dists[i,j] <- calc.dist(type = object$type, lambda = object$lambda, 
+                                  data1 = object$data[i,], data2 = object$data[j,],
+                                  data_plus = data_plus)
         }
       }
     }
@@ -316,21 +491,13 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_
   }else{
     n <- nrow(data)
     
-    if(is.null(lambda)){
-      numvars <- sapply(data, is.numeric)
-      anynum <- any(numvars)
-      catvars <- sapply(data, is.factor)
-      anyfact <- any(catvars)
-      vnum <- mean(sapply(data[,numvars, drop = FALSE], var, na.rm = TRUE))
-      vcat <- mean(sapply(data[,catvars, drop = FALSE], function(z) return(1 - sum((table(z)/sum(!is.na(z)))^2))))
-      lambda <- vnum/vcat
-    }
-    
     if(is.null(dists)){
       dists <- matrix(numeric(), nrow = n, ncol = n)
       for(i in 1:(n - 1)){
         for(j in (i + 1):n){
-          dists[i,j] <- create.dist_kpa(lambda, data1 = data[i,], data2 = data[j,])
+          dists[i,j] <- calc.dist(type = type, lambda = lambda, 
+                                  data1 = data[i,], data2 = data[j,],
+                                  data_plus = data_plus)
         }
       }
     }
@@ -338,18 +505,18 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_
     index <- numeric(n)
     
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE,  lambda = lambda, ...)
-    trace_kp <- list(list("index" = gamma_kproto(object = object, dists = dists), 
+    object <- kproto(x = data, k = k[1], type = type, keep.data = TRUE,  lambda = lambda, verbose = verbose, ...)
+    trace_kp <- list(list("index" = gamma_kproto(object = object, dists = dists, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      object <- kproto(x = data, k = q, type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = gamma_kproto(object = object, dists = dists), 
+        trace_kp <- c(trace_kp, list(list("index" = gamma_kproto(object = object, dists = dists, data_plus = data_plus), 
                                           "k" = length(object$size), "object" = object)))
       }else{
         # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- gamma_kproto(object = object, dists = dists)
+        index_value <- gamma_kproto(object = object, dists = dists, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -367,25 +534,26 @@ gamma_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
-
+    
   }
 }
 
 
-gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", lambda = NULL, ...){
+gplus_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
   if(!is.null(object)){
-    if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
     
     n <- nrow(object$data)
     if(is.null(dists)){
       dists <- matrix(numeric(), nrow=n, ncol=n)
       for(i in 1:(n - 1)){
         for(j in (i + 1):n){
-          dists[i,j] <- create.dist_kpa(object$lambda, data1 = object$data[i,], data2 = object$data[j,])
+          dists[i,j] <- calc.dist(type = object$type, lambda = object$lambda, 
+                                  data1 = object$data[i,], data2 = object$data[j,],
+                                  data_plus = data_plus)
         }
       }
     }
@@ -409,22 +577,13 @@ gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_
   }else{
     n <- nrow(data)
     
-    if(is.null(lambda)){
-      numvars <- sapply(data, is.numeric)
-      anynum <- any(numvars)
-      catvars <- sapply(data, is.factor)
-      anyfact <- any(catvars)
-      vnum <- mean(sapply(data[,numvars, drop = FALSE], var, na.rm = TRUE))
-      vcat <- mean(sapply(data[,catvars, drop = FALSE], function(z) return(1 - sum((table(z)/sum(!is.na(z)))^2))))
-      lambda <- vnum/vcat
-    }
-    
-    
     if(is.null(dists)){
       dists <- matrix(numeric(), nrow = n, ncol = n)
       for(i in 1:(n - 1)){
         for(j in (i + 1):n){
-          dists[i,j] <- create.dist_kpa(lambda, data1 = data[i,], data2 = data[j,])
+          dists[i,j] <- calc.dist(type = type, lambda = lambda, 
+                                  data1 = data[i,], data2 = data[j,],
+                                  data_plus = data_plus)
         }
       }
     }
@@ -432,18 +591,18 @@ gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_
     if(is.null(k)){k <- 2:sqrt(n)}
     
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE,lambda = lambda, ...)
-    trace_kp <- list(list("index" = gplus_kproto(object = object, dists = dists), 
+    object <- kproto(x = data, k = k[1], type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
+    trace_kp <- list(list("index" = gplus_kproto(object = object, dists = dists, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      object <- kproto(x = data, k = q, type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = gplus_kproto(object = object, dists = dists), 
+        trace_kp <- c(trace_kp, list(list("index" = gplus_kproto(object = object, dists = dists, data_plus = data_plus), 
                                           "k" = length(object$size), "object" = object)))
       }else{
         # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- gplus_kproto(object = object, dists = dists)
+        index_value <- gplus_kproto(object = object, dists = dists, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -461,21 +620,19 @@ gplus_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
   }
 }
 
 
-mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal", lambda = NULL, ...){
+mcclain_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
   if(!is.null(object)){
-    if(is.null(object$data)) stop("kproto_object should have the original data included (kproto(..., keep.data = TRUE))")
-    
     n <- nrow(object$data)
-    S_w_kpa <- create.S_w_kpa(object)
-    S_b_kpa <- create.S_b_kpa(object)
+    S_w_kpa <- create.S_w(object, data_plus = data_plus)
+    S_b_kpa <- create.S_b(object, data_plus = data_plus)
     N_w <- create.N_w(object)
     N_t <- n*(n - 1)/2
     N_b <- N_t-N_w
@@ -484,23 +641,19 @@ mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optim
     
     return(index)
   }else{
-    n <- nrow(data) 
-    
-    if(is.null(k)){k <- 2:sqrt(n)}
-    
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE, ...)
-    trace_kp <- list(list("index" = mcclain_kproto(object = object), 
+    object <- kproto(x = data, k = k[1], type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
+    trace_kp <- list(list("index" = mcclain_kproto(object = object, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      object <- kproto(x = data, k = q, type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = mcclain_kproto(object = object), 
+        trace_kp <- c(trace_kp, list(list("index" = mcclain_kproto(object = object, data_plus = data_plus), 
                                           "k" = length(object$size), "object" = object)))
       }else{
-        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- mcclain_kproto(object = object)
+        # save kproto object if there is a cluster partition with same number of cluster but different validation index
+        index_value <- mcclain_kproto(object = object, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -518,31 +671,32 @@ mcclain_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optim
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
   }
 }
 
 
-ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, kp_obj = "optimal", lambda = NULL, ...){
+ptbiserial_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, s_d = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
   if(!is.null(object)){
-    if(is.null(object$data)) stop("object should have the original data included (kproto(...,keep.data=TRUE))")
     
     n <- nrow(object$data)
     if(is.null(s_d)){
       S_all <- matrix(numeric(), ncol = n, nrow = n)
       for(i in 1:(n - 1)){
         for(j in (i + 1):n){
-          S_all[i,j] <- create.dist_kpa(lambda = object$lambda, data1 = object$data[i,], data2 = object$data[j,])
+          S_all[i,j] <- calc.dist(type = object$type, lambda = object$lambda, 
+                                  data1 = object$data[i,], data2 = object$data[j,],
+                                  data_plus = data_plus)
         }
       }
       s_d <- sd(S_all, na.rm = TRUE)
     }
     
-    S_w_kpa <- create.S_w_kpa(object)
-    S_b_kpa <- create.S_b_kpa(object)
+    S_w_kpa <- create.S_w(object, data_plus = data_plus)
+    S_b_kpa <- create.S_b(object, data_plus = data_plus)
     N_w <- create.N_w(object)
     N_t <- n*(n-1)/2
     N_b <- N_t-N_w
@@ -551,43 +705,33 @@ ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, 
     
     return(index)
   }else{
+    
     n <- nrow(data)
-    
-    if(is.null(lambda)){
-      numvars <- sapply(data, is.numeric)
-      anynum <- any(numvars)
-      catvars <- sapply(data, is.factor)
-      anyfact <- any(catvars)
-      vnum <- mean(sapply(data[,numvars, drop = FALSE], var, na.rm = TRUE))
-      vcat <- mean(sapply(data[,catvars, drop = FALSE], function(z) return(1-sum((table(z)/sum(!is.na(z)))^2))))
-      lambda <- vnum/vcat
-    }
-    
     if(is.null(s_d)){
       S_all <- matrix(numeric(), ncol = n, nrow = n)
       for(i in 1:(n-1)){
         for(j in (i+1):n){
-          S_all[i,j] <- create.dist_kpa(lambda = lambda, data1 = data[i,], data2 = data[j,])
+          S_all[i,j] <- calc.dist(type = type, lambda = lambda,
+                                  data1 = data[i,], data2 = data[j,],
+                                  data_plus = data_plus)
         }
       }
       s_d <- sd(S_all, na.rm = TRUE)
     }
     
-    if(is.null(k)){k <- 2:sqrt(n)}
-    
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE, lambda = lambda, ...)
-    trace_kp <- list(list("index" = ptbiserial_kproto(object = object, s_d = s_d), 
+    object <- kproto(x = data, k = k[1], type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
+    trace_kp <- list(list("index" = ptbiserial_kproto(object = object, s_d = s_d, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      object <- kproto(x = data, k = q, type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = ptbiserial_kproto(object = object, s_d = s_d), 
+        trace_kp <- c(trace_kp, list(list("index" = ptbiserial_kproto(object = object, s_d = s_d, data_plus = data_plus), 
                                           "k" = length(object$size), "object" = object)))
       }else{
-        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- ptbiserial_kproto(object = object, s_d = s_d)
+        # save kproto object if there is a cluster partition with same number of cluster but different validation index
+        index_value <- ptbiserial_kproto(object = object, s_d = s_d, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -605,66 +749,42 @@ ptbiserial_kproto <- function(object = NULL, data = NULL, k = NULL, s_d = NULL, 
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
   }
 }
 
 
-silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "optimal", lambda = NULL, ...){
+silhouette_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
   if(!is.null(object)){
-    if(is.null(object$data)) stop("object should have the original data included (kproto(...,keep.data=TRUE))")
     
-    n <- nrow(object$data)
-    x <- object$data
-    cluster <- object$cluster
-    k <- length(table(cluster))
-    lambda <- object$lambda
-    numvars <- sapply(x, is.numeric)
-    catvars <- sapply(x, is.factor)
+    dists <- calc.dist(type = object$type, lambda = object$lambda, 
+                       data1 = object$data, all.dists = TRUE,
+                       data_plus = data_plus)
     
-    
-    protos <- x
-    nrows <- nrow(x)
-    dists <- matrix(NA, nrow = nrows, ncol = nrows)
-    for(i in 1:nrows){
-      #distances of the numeric variables
-      d1 <- (x[,numvars, drop = FALSE] - matrix(rep(as.numeric(protos[i, numvars, drop = FALSE]), nrows), nrow = nrows, byrow = TRUE))^2
-      d1[is.na(d1)] <- 0
-      if(length(lambda) == 1) d1 <- rowSums(d1)
-      if(length(lambda) > 1) d1 <- as.matrix(d1) %*% lambda[numvars]
-      
-      #distances of the categorical variances
-      d2 <- sapply(which(catvars), function(j) return(x[,j] != rep(protos[i,j], nrows)))
-      d2[is.na(d2)] <- FALSE
-      if(length(lambda) == 1) d2 <- lambda * rowSums(d2)
-      if(length(lambda) > 1) d2 <- as.matrix(d2) %*% lambda[catvars]
-      
-      dists[,i] <- d1 + d2
-    }
-    
-    cluster_dists <- matrix(numeric(nrows*k), nrow = nrows, ncol = k)
-    for(i in 1:k){
-      if(!(length(which(cluster == i)) == 1)){
-        cluster_dists[,i] <- rowMeans(dists[,which(cluster == i)])
+    cluster_dists <- matrix(numeric(nrow(object$data)*length(table(object$cluster))), 
+                            nrow = nrow(object$data), ncol = length(table(object$cluster)))
+    for(i in 1:length(table(object$cluster))){
+      if(!(length(which(object$cluster == i)) == 1)){
+        cluster_dists[,i] <- rowMeans(dists[,which(object$cluster == i)])
       }else{
-        cluster_dists[,i] <- dists[,which(cluster == i)]
+        cluster_dists[,i] <- dists[,which(object$cluster == i)]
       }
     }
     
     #determine ai, bi and si
-    a <- numeric(nrows)
-    b <- numeric(nrows)
-    s <- numeric(nrows)
-    for(i in 1:nrows){
-      if(is.na(cluster[i])){
+    a <- numeric(nrow(object$data))
+    b <- numeric(nrow(object$data))
+    s <- numeric(nrow(object$data))
+    for(i in 1:nrow(object$data)){
+      if(is.na(object$cluster[i])){
         # special case: no cluster assignment cluster[i] (usually resulting of all variables NA in x[i])
         s[i] <- NA
       }else{
-        a[i] <- cluster_dists[i, cluster[i]]
-        b[i] <- min(cluster_dists[i, -cluster[i]])
+        a[i] <- cluster_dists[i, object$cluster[i]]
+        b[i] <- min(cluster_dists[i, -object$cluster[i]])
         
         if(max(a[i], b[i], na.rm = TRUE) == 0){
           # special case: a[i]=0 and b[i]=0 => s = 0, since x[i] lies equally far away (distance = 0) from both the clusters
@@ -675,34 +795,32 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "op
       }
       
     }
-    if(any(table(cluster) == 1)){
-      for(i in which(cluster %in% as.integer(which(table(cluster) == 1)))){
+    if(any(table(object$cluster) == 1)){
+      for(i in which(object$cluster %in% as.integer(which(table(object$cluster) == 1)))){
         s[i] <- 0
       }
-      cat(length(which(cluster %in% as.integer(which(table(cluster) == 1))))," cluster with only one observation\n")
+      cat(length(which(object$cluster %in% as.integer(which(table(object$cluster) == 1))))," cluster with only one observation\n")
     }
     
     index <- mean(s, na.rm = TRUE)
     
     return(index)
   }else{
-    n <- nrow(data)
-    
-    if(is.null(k)){k <- 2:sqrt(n)}
+    #n <- nrow(data)
     
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE, lambda = lambda, ...)
-    trace_kp <- list(list("index" = silhouette_kproto(object = object), 
+    object <- kproto(x = data, type = type, k = k[1], keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
+    trace_kp <- list(list("index" = silhouette_kproto(object = object, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      object <- kproto(x = data, type = type, k = q, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = silhouette_kproto(object = object), 
+        trace_kp <- c(trace_kp, list(list("index" = silhouette_kproto(object = object, data_plus = data_plus), 
                                           "k" = length(object$size), "object" = object)))
       }else{
-        # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- silhouette_kproto(object = object)
+        # save kproto object if there is a cluster partition with same number of cluster but different validation index
+        index_value <- silhouette_kproto(object = object, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -720,24 +838,25 @@ silhouette_kproto <- function(object = NULL, data = NULL, k = NULL, kp_obj = "op
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
   }
 }
 
 
-tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", lambda = NULL, ...){
+tau_kproto <- function(object = NULL, type = NULL, data = NULL, k = NULL, dists = NULL, kp_obj = "optimal", lambda = NULL, data_plus = NULL, verbose = FALSE, ...){
   
   if(!is.null(object)){
-    if(is.null(object$data)) stop("object should have the original data included (kproto(..., keep.data = TRUE))")
     
     if(is.null(dists)){
       n <- nrow(object$data)
       dists <- matrix(numeric(), nrow = n, ncol = n)
       for(i in 1:(n - 1)){
         for(j in (i + 1):n){
-          dists[i,j] <- create.dist_kpa(lambda = object$lambda, data1 = object$data[i,], data2 = object$data[j,])
+          dists[i,j] <- calc.dist(type = object$type, lambda = object$lambda, 
+                                  data1 = object$data[i,], data2 = object$data[j,],
+                                  data_plus = data_plus)
         }
       }
     }
@@ -775,21 +894,13 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
   }else{
     n <- nrow(data)
     
-    if(is.null(lambda)){
-      numvars <- sapply(data, is.numeric)
-      anynum <- any(numvars)
-      catvars <- sapply(data, is.factor)
-      anyfact <- any(catvars)
-      vnum <- mean(sapply(data[, numvars, drop = FALSE], var, na.rm = TRUE))
-      vcat <- mean(sapply(data[, catvars, drop = FALSE], function(z) return(1 - sum((table(z)/sum(!is.na(z)))^2))))
-      lambda <- vnum/vcat
-    }
-    
     if(is.null(dists)){
       dists <- matrix(numeric(), nrow = n, ncol = n)
       for(i in 1:(n-1)){
         for(j in (i+1):n){
-          dists[i,j] <- create.dist_kpa(lambda = lambda, data1 = data[i,], data2 = data[j,])
+          dists[i,j] <- calc.dist(type = type, lambda = lambda, 
+                                  data1 = data[i,], data2 = data[j,],
+                                  data_plus = data_plus)
         }
       }
     }
@@ -797,18 +908,18 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
     if(is.null(k)){k <- 2:sqrt(n)}
     
     #calculate all kproto objects for k
-    object <- kproto(x = data, k = k[1], keep.data = TRUE, lambda = lambda, ...)
-    trace_kp <- list(list("index" = tau_kproto(object = object, dists = dists), 
+    object <- kproto(x = data, k = k[1], type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
+    trace_kp <- list(list("index" = tau_kproto(object = object, dists = dists, data_plus = data_plus), 
                           "k" = length(object$size), "object" = object))
     for(q in k[-1]){
-      object <- kproto(x = data, k = q, keep.data = TRUE, lambda = lambda, ...)
+      object <- kproto(x = data, k = q, type = type, keep.data = TRUE, lambda = lambda, verbose = verbose, ...)
       #save kproto object, if there isn't an object for this number of cluster
       if(!any(lapply(trace_kp, `[[`, 2) == length(object$size))){
-        trace_kp <- c(trace_kp, list(list("index" = tau_kproto(object = object, dists = dists), 
+        trace_kp <- c(trace_kp, list(list("index" = tau_kproto(object = object, dists = dists, data_plus = data_plus), 
                                           "k" = length(object$size), "object" = object)))
       }else{
         # save kproto object if there is a clusterpartition with same number of cluster but different validation index
-        index_value <- tau_kproto(object = object, dists = dists)
+        index_value <- tau_kproto(object = object, dists = dists, data_plus = data_plus)
         if(!(index_value %in% unlist(lapply(trace_kp, `[[`, 1))[which(unlist(lapply(trace_kp, `[[`, 2)) == length(object$size))])){
           trace_kp <- c(trace_kp, list(list("index" = index_value, "k" = length(object$size), "object" = object)))
         }
@@ -826,8 +937,8 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
     index_opt <- indices[k_m]
     
     output <- switch(kp_obj,
-                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp),
-                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object))
+                     "all" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp, "type" = type),
+                     "optimal" = list("k_opt" = k_opt, "index_opt" = index_opt, "indices" = indices, "kp_obj" = trace_kp[[k_m]]$object, "type" = type))
     return(output)
   }
 }
@@ -841,16 +952,18 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
 #'
 #' @description Calculating the preferred validation index for a k-Prototypes clustering with k clusters or computing the optimal number of clusters based on the choosen index for k-Prototype clustering. Possible validation indices are: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} and \code{tau}.
 #' 
-#' @param method character specifying the validation index: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} (default) or \code{tau}.
-#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}
-#' @param data Original data; only required if \code{object == NULL} and neglected if \code{object != NULL}
+#' @param method Character specifying the validation index: \code{cindex}, \code{dunn}, \code{gamma}, \code{gplus}, \code{mcclain}, \code{ptbiserial}, \code{silhouette} (default) or \code{tau}.
+#' @param object Object of class \code{kproto} resulting from a call with \code{kproto(..., keep.data=TRUE)}.
+#' @param data Original data; only required if \code{object == NULL} and neglected if \code{object != NULL}.
+#' @param type Character, to specify the distance for clustering; either \code{"huang"} or \code{"gower"}.
 #' @param k Vector specifying the search range for optimum number of clusters; if \code{NULL} the range will set as \code{2:sqrt(n)}. Only required if \code{object == NULL} and neglected if \code{object != NULL}.
 #' @param lambda Factor to trade off between Euclidean distance of numeric variables and simple matching coefficient between categorical variables.
 #' @param kp_obj character either "optimal" or "all": Output of the index-optimal clustering (kp_obj == "optimal") or all computed cluster partitions (kp_obj == "all"); only required if \code{object != NULL}.
+#' @param verbose Logical, whether additional information about process should be printed.
 #' @param ... Further arguments passed to \code{\link[clustMixType]{kproto}}, like:
 #'   \itemize{
 #'     \item \code{nstart}: If > 1 repetitive computations of \code{kproto} with random initializations are computed.
-#'     \item \code{verbose}: Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
+#'     \item \code{na.rm}: Character, either \code{"yes"} to strip \code{NA} values for complete case analysis, \code{"no"} to keep and ignore \code{NA} values, \code{"imp.internal"} to impute the \code{NAs} within the algorithm or \code{"imp.onestep"} to apply the algorithm ignoring the \code{NAs} and impute them after the partition is determined.
 #'   }
 #' 
 #' @details More information about the implemented validation indices:
@@ -968,56 +1081,126 @@ tau_kproto <- function(object = NULL, data = NULL, k = NULL, dists = NULL, kp_ob
 #' 
 #' 
 #' @export
-validation_kproto <- function(method = "silhouette", object = NULL, data = NULL, k = NULL, lambda = NULL, kp_obj = "optimal", ...){
-
-# tbd...    
-  if(!is.null(object)) {if(object$type == "gower") stop("validation_kproto currently only implemented for type == 'gower'")}  
+validation_kproto <- function(method = "silhouette", object = NULL, data = NULL, type = "huang", k = NULL, lambda = NULL, kp_obj = "optimal", verbose = FALSE, ...){
 
   if(is.null(method)) stop("validation methode must be choosen!")
   if(!(method %in% c("cindex", "dunn", "gamma", "gplus", "mcclain", "ptbiserial", "silhouette", "tau"))) stop("choose one of these methods: cindex, dunn, gamma, gplus, mcclain, ptbiserial, silhouette, tau")
   
-  if(is.null(data) && is.null(object)) stop("data or object muss be given!")
+  if(is.null(data) & is.null(object)) stop("'data' or 'object' must be given!")
   
-  if(!is.null(data) && !is.data.frame(data)) stop("data should be a data frame!")
-  if(!is.null(data) && ncol(data) < 2) stop("for clustering data should contain at least two variables!")
-  if(!is.null(data) && nrow(data) < 4) stop("for clustering data should contain at least four objects!")
-  
-  #if(!is.null(object) && class(object) != "kproto") stop("object must be type of 'kproto'")
-  if(!is.null(object) && !inherits(object, "kproto")) stop("object must be type of 'kproto'")
-  if(!is.null(k) && length(k) == 1){
-    stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
+  if(!is.null(object) & !inherits(object, "kproto")) stop("object must be type of 'kproto'")
+  if(!is.null(object) & is.null(object$data)) stop("kproto_object should have the original data included (kproto(..., keep.data = TRUE))")
+  if(!is.null(object)){
+    
+    if(object$type == "gower"){
+      data_plus <- list()
+      
+      data_plus$numvars <- sapply(object$data, is.numeric)
+      data_plus$ordvars <- sapply(object$data, is.ordered)
+      data_plus$catvars <- sapply(object$data, is.factor) & !data_plus$ordvars
+      
+      # ranges for normalization and transformed data for gower's distance calculation
+      if(any(data_plus$numvars)) data_plus$rgnums <- sapply(object$data[, data_plus$numvars, drop = FALSE], function(z) diff(range(z)))
+      if(any(data_plus$ordvars)){
+        data_plus$data_ord <- object$data[, data_plus$ordvars, drop = FALSE] # store original variables 
+        # ...and replace ordered variables by their ranks
+        for(jord in which(data_plus$ordvars)) object$data[,jord] <- rank(object$data[,jord])
+        data_plus$rgords <- sapply(object$data[, data_plus$ordvars, drop = FALSE], function(z) diff(range(z)))
+      }
+    }
+    if(object$type == "huang"){
+      data_plus <- list()
+      data_plus$numvars <- sapply(object$data, is.numeric)
+      data_plus$catvars <- sapply(object$data, is.factor)
+    }
   }
-  if(length(k) > 1){
-    if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
-    if(any(k <= 1) | any(k >= nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
-    if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
+  
+  if(is.null(object)){
+    if(!is.data.frame(data)) stop("data should be a data frame!")
+    if(ncol(data) < 2) stop("for clustering data should contain at least two variables!")
+    if(nrow(data) < 4) stop("for clustering data should contain at least four objects!")
+    
+    if(type %in% c("Huang", "standard")) type <- "huang"
+    if(type == "Gower") type <- "gower"
+    if(!type %in% c("huang", "gower")) stop("Argument type must be either 'huang' or 'gower'!")
+    
+    if(type == "gower"){
+      type <- "gower"
+      data_plus <- list()
+      
+      data_plus$numvars <- sapply(data, is.numeric)
+      data_plus$ordvars <- sapply(data, is.ordered)
+      data_plus$catvars <- sapply(data, is.factor) & !data_plus$ordvars
+      
+      # ranges for normalization and transformed data for gower's distance calculation
+      if(any(data_plus$numvars)) data_plus$rgnums <- sapply(data[, data_plus$numvars, drop = FALSE], function(z) diff(range(z)))
+      if(any(data_plus$ordvars)){
+        data_plus$data_ord <- data[, data_plus$ordvars, drop = FALSE] # store original variables 
+        # ...and replace ordered variables by their ranks
+        for(jord in which(data_plus$ordvars)) data[,jord] <- rank(data[,jord])
+        data_plus$rgords <- sapply(data[, data_plus$ordvars, drop = FALSE], function(z) diff(range(z)))
+      }
+      
+      if(length(lambda) > 0 & length(lambda) != sum(c(data_plus$numvars, data_plus$catvars, data_plus$ordvars))) {
+        warning("For gower distance if lambda is specified, its length must be the sum of numeric and factor variables in the data frame!")
+        lambda <- NULL
+      }
+    }
+    
+    if(type == "huang"){
+      data_plus <- list()
+      
+      data_plus$numvars <- sapply(data, is.numeric)
+      data_plus$catvars <- sapply(data, is.factor)
+      
+      if(!is.null(lambda)){
+        if(length(lambda) > 1){
+          if(length(lambda) != sum(c(data_plus$numvars, data_plus$catvars))) stop("If lambda is a vector, its length should be the sum of numeric and factor variables in the data frame!")
+        }else{
+          if(length(lambda) == 1) {if(lambda == 0) stop("lambda has to be a value != 0. For automatic calculation use lambda = NULL (default setting)!")}
+        }
+      }else{
+        lambda <- lambdaest(x = data, num.method = 1, fac.method = 1, outtype = "numeric", verbose = FALSE)
+        if(verbose) cat("Estimated lambda:", lambda, "\n\n")
+      }
+    }
+    
+    if(!is.null(k) & length(k) == 1){
+      stop("k should be the search range for optimum number of clusters, e.g. c(2:sqrt(n))")
+    }
+    if(length(k) > 1){
+      if(nrow(data) < max(k)) stop("Data frame has less observations than clusters!")
+      if(any(k <= 1) | any(k >= nrow(data))) stop("Elements of k must be greater than 1 and strictly less than n!")
+      if(all(!as.integer(k)==k)) stop("Elements of k must be type of integer")
+    }
+    if(1 %in% k){
+      if(method %in% c("cindex", "mcclain", "ptbiserial")) stop(paste("Index calculation not possible for k = 1. As the", method, "index is based on the relation of within-cluster distances and between-cluster distances, choose k > 1."))
+      if(method %in% c("gamma", "gplus", "tau")) stop(paste("Index calculation not possible for k = 1. Since the", method, "index insists on comparing within-cluster distances and between-cluster distances, choose k > 1."))
+      if(method == "dunn") stop("Index calculation not possible for k = 1. Calculation of the dunn index requires the determination of the distance between two clusters, so you have to set k > 1.")
+      if(method == "silhouette") stop("Index calculation not possible for k = 1. The Silhouette index rates the average within-cluster distance for the own cluster and for the best alternative cluster for every object, so you have to set k > 1.")
+    }
+    if(length(object$size) == 1){
+      if(method %in% c("cindex", "mcclain", "ptbiserial")) stop(paste("Index calculation not possible for kproto-objects with only one cluster. As the", method, "index is based on the relation of within-cluster distances and between-cluster distances a kproto-object which has been computed with k > 1 is required."))
+      if(method %in% c("gamma", "gplus", "tau")) stop(paste("Index calculation not possible for kproto-objects with only one cluster. Since the", method, "index insists on comparing within-cluster distances and between-cluster distances a kproto-object which has been computed with k > 1 is required."))
+      if(method == "dunn") stop("Index calculation not possible for kproto-objects with only one cluster. Calculation of the dunn index requires the determination of the distance between two clusters. You have to insert a kproto-object which has been computed with k > 1.")
+      if(method == "silhouette") stop("Index calculation not possible for kproto-objects with only one cluster. The Silhouette index rates the average within-cluster distance for the own cluster and for the best alternative cluster for every object. You have to insert a kproto-object which has been computed with k > 1.")
+    }
+    if(is.null(k)){
+      k <- 2:sqrt(nrow(data))
+    }
   }
   
-  if(1 %in% k){
-    if(method %in% c("cindex", "mcclain", "ptbiserial")) stop(paste("Index calculation not possible for k = 1. As the", method, "index is based on the relation of within-cluster distances and between-cluster distances, choose k > 1."))
-    if(method %in% c("gamma", "gplus", "tau")) stop(paste("Index calculation not possible for k = 1. Since the", method, "index insists on comparing within-cluster distances and between-cluster distances, choose k > 1."))
-    if(method == "dunn") stop("Index calculation not possible for k = 1. Calculation of the dunn index requires the determination of the distance between two clusters, so you have to set k > 1.")
-    if(method == "silhouette") stop("Index calculation not possible for k = 1. The Silhouette index rates the average within-cluster distance for the own cluster and for the best alternative cluster for every object, so you have to set k > 1.")
-  }
-  if(length(object$size) == 1){
-    if(method %in% c("cindex", "mcclain", "ptbiserial")) stop(paste("Index calculation not possible for kproto-objects with only one cluster. As the", method, "index is based on the relation of within-cluster distances and between-cluster distances a kproto-object which has been computed with k > 1 is required."))
-    if(method %in% c("gamma", "gplus", "tau")) stop(paste("Index calculation not possible for kproto-objects with only one cluster. Since the", method, "index insists on comparing within-cluster distances and between-cluster distances a kproto-object which has been computed with k > 1 is required."))
-    if(method == "dunn") stop("Index calculation not possible for kproto-objects with only one cluster. Calculation of the dunn index requires the determination of the distance between two clusters. You have to insert a kproto-object which has been computed with k > 1.")
-    if(method == "silhouette") stop("Index calculation not possible for kproto-objects with only one cluster. The Silhouette index rates the average within-cluster distance for the own cluster and for the best alternative cluster for every object. You have to insert a kproto-object which has been computed with k > 1.")
-  }
-  
-  
-  if(!(kp_obj %in% c("optimal","all"))) stop("kp_obj must either be optimal or all!")
+  if(!(kp_obj %in% c("optimal","all"))) stop("kp_obj must either be 'optimal' or 'all'!")
   
   output <- switch(method,
-                   "cindex" = cindex_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...),
-                   "dunn" = dunn_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...),
-                   "gamma" = gamma_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...),
-                   "gplus" = gplus_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...),
-                   "mcclain" = mcclain_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...),
-                   "ptbiserial" = ptbiserial_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...),
-                   "silhouette" = silhouette_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...),
-                   "tau" = tau_kproto(object = object, data = data, k = k, kp_obj = kp_obj, lambda = lambda, ...))
+                   "cindex" = cindex_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...),
+                   "dunn" = dunn_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...),
+                   "gamma" = gamma_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...),
+                   "gplus" = gplus_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...),
+                   "mcclain" = mcclain_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...),
+                   "ptbiserial" = ptbiserial_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...),
+                   "silhouette" = silhouette_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...),
+                   "tau" = tau_kproto(object = object, type = type, data = data, k = k, kp_obj = kp_obj, lambda = lambda, data_plus = data_plus, ...))
   
   return(output)
 }

@@ -1,110 +1,3 @@
-# is.ordered(x)
-# as.ordered(x)
-# str(ordered(4:1))
-# class(ordered(4:1))
-# is.ordered(ordered(4:1))
-
-#' @title k-Prototypes Clustering using Gower Dissimilarity
-#' @description Internal function. Computes k-prototypes clustering for mixed-type data using Gower dissimilarity.
-#' 
-#' @details Internal function called by \code{\link{kproto}}. Note that there is no \code{nstart} argument.  
-#' Higher values than \code{nstart = 1} can be specified within \code{kproto} which will call \code{kproto_gower} 
-#' several times.
-#' For Gower dissimilarity range-normalized absolute distances from the cluster median 
-#' are computed for the numeric variables (and for the ranks of the ordered factors respectively). 
-#' For factors simple matching distance is used as in the original k prototypes algorithm. 
-#' The prototypes are given by the median for numeric variables, the mode for factors and the level with the closest rank 
-#' to the median rank of the corresponding cluster.
-#' In case of \code{na.rm = "no"}: for each observation variables with missings are ignored 
-#' (i.e. only the remaining variables are considered for distance computation). 
-#' In consequence for observations with missings this might result in a change of variable's weighting compared to the one specified
-#' by \code{lambda}. Further note: For these observations distances to the prototypes will typically be smaller as they are based 
-#' on fewer variables.
-#' 
-#' @keywords classif 
-#' @keywords cluster
-#' @keywords multivariate
-#' 
-#' @rdname kproto_gower
-#' 
-#' @param x Data frame with both numerics and factors (also ordered factors are possible).
-#' @param k Either the number of clusters, a vector specifying indices of initial prototypes, or a data frame of prototypes of the same columns as \code{x}.
-#' 
-#' @param lambda Parameter > 0 to trade off between Euclidean distance of numeric variables 
-#' and simple matching coefficient between categorical variables. Also a vector of variable specific factors is possible where 
-#' the order must correspond to the order of the variables in the data. In this case all variables' distances will be multiplied by 
-#' their corresponding lambda value.
-#' 
-#' @param iter.max Maximum number of iterations if no convergence before.
-#' @param na.rm Character; passed from \code{\link{kproto}}. For  "no" observations where all variables are missinf are assigned cluster membershim \code{NA}.
-#' @param keep.data Logical whether original should be included in the returned object.
-#' @param verbose Logical whether information about the cluster procedure should be given. Caution: If \code{verbose=FALSE}, the reduction of the number of clusters is not mentioned.
-#
-#' @return \code{\link{kmeans}} like object of class \code{\link{kproto}}:
-#' @return \item{cluster}{Vector of cluster memberships.}
-#' @return \item{centers}{Data frame of cluster prototypes.}
-#' @return \item{lambda}{Distance parameter lambda. For \code{type = "gower"} only a vector of variable specific weights is possible.}
-#' @return \item{size}{Vector of cluster sizes.}
-#' @return \item{withinss}{Vector of within cluster distances for each cluster, i.e. summed distances of all observations belonging to a cluster to their respective prototype.}
-#' @return \item{tot.withinss}{Target function: sum of all observations' distances to their corresponding cluster prototype.}
-#' @return \item{dists}{Matrix with distances of observations to all cluster prototypes.}
-#' @return \item{iter}{Prespecified maximum number of iterations.}
-#' @return \item{stdization}{List of standardized ranks for ordinal variables and and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
-#' @return \item{trace}{List with two elements (vectors) tracing the iteration process: 
-#' \code{tot.dists} and \code{moved} number of observations over all iterations.}
-#'   
-#' @examples
-#' 
-#' datasim <- function(n = 100, k.ord = 2, muk = 1.5){
-#'   clusid <- rep(1:4, each = n)
-#'   # numeric
-#'   mus <- c(rep(-muk, n),
-#'            rep(-muk, n),
-#'            rep(muk, n),
-#'            rep(muk, n))
-#'            x1 <- rnorm(4*n) + mus
-#'  # ordered factor
-#'   mus <- c(rep(-muk, n),
-#'            rep(muk, n),
-#'            rep(-muk, n),
-#'            rep(muk, n))
-#'  x2 <- rnorm(4*n) + mus
-#'  # ordered factor
-#'  
-#'  quants <- quantile(x2, seq(0, 1, length.out = (k.ord+1)))
-#'  quants[1] <- -Inf
-#'  quants[length(quants)] <- Inf
-#'  x2 <- as.ordered(cut(x2, quants))
-#'  x <- data.frame(x1, x2)
-#'  return(x)
-#'  }
-#'  
-#'  n     <- 100
-#'  x     <- datasim(n = n, k.ord = 10, muk = 2)
-#'  truth <- rep(1:4, each = n)
-#'  
-#'  # calling the internal kproto_gower() directly 
-#'  kgres <- kproto_gower(x, 4, verbose = FALSE)
-#'  
-#'  # calling kproto gower via kproto:
-#'  kgres2 <- kproto(x, 4, verbose = FALSE, type = "gower", nstart = 10)
-#'  
-#'  table(kgres$cluster, truth)
-#'  clprofiles(kgres, x)
-#'  
-#' @author \email{gero.szepannek@@web.de}
-#' 
-#' @references \itemize{
-#'     \item Gower, J. C. (1971): A General Coefficient of Similarity and Some of Its Properties. {\emph{Biometrics, 27(4)}}, 857–871. 
-#'           \doi{10.2307/2528823}. 
-#'     \item Podani, J. (1999): Extending Gower's general coefficient of similarity to ordinal characters. {\emph{TAXON, 48}}, 331-340.
-#'           \doi{10.2307/1224438}.
-#'   }
-#' 
-#' @importFrom stats complete.cases
-#' @importFrom stats median
-#' @export 
-
 kproto_gower <- function(x, k, lambda = NULL, iter.max = 100, na.rm = "yes", keep.data = TRUE, verbose = TRUE){
   # # enable input of tibbles #...done within kproto()
   # if(is_tibble(x) == TRUE){x <- as.data.frame(x)}
@@ -132,43 +25,13 @@ kproto_gower <- function(x, k, lambda = NULL, iter.max = 100, na.rm = "yes", kee
   # initialize lookup table to store standardized ranks / ranges of numeric variables for predict.kproto()
   lookup <- list() 
   
-  # # treatment of missings  ...done by kproto()
-  # NAcount <- apply(x, 2, function(z) sum(is.na(z)))
-  # if(verbose){
-  #   cat("# NAs in variables:\n")
-  #   print(NAcount)
-  # }
-  # if(any(NAcount == nrow(x))) stop(paste("Variable(s) have only NAs please remove them:", names(NAcount)[NAcount == nrow(x)],"!"))
-  # if(na.rm == "yes") {
-  #   miss <- apply(x, 1, function(z) any(is.na(z)))
-  #   if(verbose){
-  #     cat(sum(miss), "observation(s) with NAs.\n")
-  #     if(sum(miss) > 0) message("Observations with NAs are removed.\n")
-  #     cat("\n")
-  #   } 
-  #   x <- x[!miss,]
-  #   } # remove missings
-  # 
-  # if(na.rm != "yes"){
-  #   allNAs <- apply(x,1,function(z) all(is.na(z)))
-  #   if(sum(allNAs) > 0){
-  #     if(verbose) cat(sum(allNAs), "observation(s) where all variables NA.\n")
-  #     warning("No meaningful cluster assignment possible for observations where all variables NA.\n")
-  #     if(verbose) cat("\n")
-  #     
-  #   }
-  # }
-  
-  # if(nrow(x) == 1) stop("Only one observation clustering not meaningful.") # ...checked by kproto
-  # k_input <- k # store input k for nstart > 1 as clusters can be merged 
-  
   # vector of ranges for normalization  
-  if(any(numvars)) rgnums <- sapply(x[, numvars, drop = FALSE], function(z) diff(range(z)))
+  if(any(numvars)) rgnums <- sapply(x[, numvars, drop = FALSE], function(z) diff(range(z, na.rm = TRUE)))
   if(any(ordvars)){
     xord   <- x[, ordvars, drop = FALSE] # store original variables 
     # ...and replace ordered variables by their ranks
-    for(jord in which(ordvars)) x[,jord] <- rank(x[,jord])
-    rgords <- sapply(x[, ordvars, drop = FALSE], function(z) diff(range(z)))
+    for(jord in which(ordvars)) x[,jord] <- rank(x[,jord], na.last = "keep")
+    rgords <- sapply(x[, ordvars, drop = FALSE], function(z) diff(range(z, na.rm = TRUE)))
   }
 
   # initialize prototypes
@@ -217,7 +80,7 @@ kproto_gower <- function(x, k, lambda = NULL, iter.max = 100, na.rm = "yes", kee
   
   if(length(lambda) > 0){
     if(length(lambda) != sum(c(numvars,catvars,ordvars))) {
-      warning("For gower distance if lambda is specified, its length must be the sum of numeric and factor variables in the data frame!")
+      warning("For gower distance if lambda is specified, its length must be the sum of numeric and factor variables in the data frame! Otherwise it will be ignored.")
       lambda <- NULL
     }
   }

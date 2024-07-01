@@ -1,17 +1,26 @@
-...tbds:  - check and fix PR #16 by ztime: Fix for different levels in training data and x.
-          - check double printing of #NAs when usingusing lambdaest.
-  
+...tbds:  
+          - check and fix PR #16 by ztime: Fix for different levels in training data and x.
           - add test for allNAs and kproto_gower
           - check NA treatment (argument + remove of NAs, ln 133ff + are they ignored if na.rm=F?)
-	        - update validation_kproto
-
+          - migrate to 0.4-1 (after missing, gower and initialization updates)
+          - maybe add variable importance (LO/perm) to post-validate selection od lambda 
+          - check -itemize environment in validation_kproto.Rd (v0.3-14)
+    
+    
           -	clprofiles(): 
             1) add legends for factors
             2) check additional input parameter for a) w/o ask = T  b) specify mfrow/mfcol for simultaneous plots of several variables (+ add error check for this option if # of variables does not match grid)
             ...is there aby potential impact on plot.kproto?
           - try to remember why has there been clprofiles and not plot.kproto so far? (...x argument for keep.data = F? )
 
-clustMixType_0.3-14 2023-12-10  - validation_kproto.Rd: \itemize environment changed into \describe according to clustMixType_0.3-13 2023-12-09  - Date field changed to ISO 8601 yyyy-mm-dd format according to Rwinbuilder check note.
+clustMixType_0.4-1  2024-06-05  - for type=gower: enable na.rm=imp.onestep and fix na.rm=no
+clustMixType_0.4-1  2024-06-05  - enable clustervalidation for type=gower
+clustMixType_0.3-17 2024-06-05  - fixed minor issues: print.kproto (num of categoricals); kproto (consistent description of the type argument)
+clustMixType_0.3-16 2023-12-17  - kprototypes: new default type = "Huang" added (ln.177) to make sure. (internally relabelled as type = "standard". old call type = "standard" is still possible.)
+clustMixType_0.3-15 2023-12-13  - kprototypes: ln. 272-281 removed (missings removed twice for na.rm = "yes", the 2nd time is redundant)
+                                (- kprtotypes_gower: ln. commented 135-163 removed to be the code more readable.)
+clustMixType_0.3-14 2023-12-10  - winbuilder note: validation_kproto.Rd: \itemize environment changed: unlike argument lists, \item in these formats is followed by a space and the text (not enclosed in braces) 
+clustMixType_0.3-13 2023-12-09  - Date field changed to ISO 8601 yyyy-mm-dd format according to Rwinbuilder check note.
                                 - kproto_gower.Rd, \item{lambda}  ...\code{code}{type = "gower"}... corrected.
 clustMixType_0.3-12 2023-10-25  - implemented three initialization strategies, for which 3 help functions were added
                                 - clean up lambdaest
