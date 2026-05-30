@@ -1,19 +1,29 @@
 Package: clustMixType
-Version: 0.4-2
-Date: 2024-06-27
+Version: 0.5-1
+Date: 2026-05-29
 Title: k-Prototypes Clustering for Mixed Variable-Type Data
-Author: Gero Szepannek [aut, cre], Rabea Aschenbruck [aut]
-Maintainer: Gero Szepannek <gero.szepannek@web.de>
-Imports: RColorBrewer, tibble, combinat, dplyr, rlang
+Authors@R: c(person(given = "Gero", 
+ 		    family = "Szepannek", 
+                    role = c("aut", "cre"), 
+                    email = "gero.szepannek@web.de"),
+             person(given = "Rabea", 
+                    family = "Aschenbruck", 
+                    role = "aut")
+             )
+Imports: RColorBrewer, tibble, combinat, dplyr, rlang, cluster
 Suggests: testthat
 Description: Functions to perform k-prototypes partitioning clustering for
     mixed variable-type data according to Z.Huang (1998): Extensions to the k-Means
     Algorithm for Clustering Large Data Sets with Categorical Variables, Data Mining
-    and Knowledge Discovery 2, 283-304.
+    and Knowledge Discovery 2, 283-304 and G.Szepannek et al. (2025): Clustering 
+    Large Mixed-Type Data with Ordinal Variables, Adv Data Anal Classif 19, 749–767.
 License: GPL (>= 2)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 NeedsCompilation: no
-Packaged: 2024-06-27 06:21:12 UTC; aschenbruck
+Packaged: 2026-05-30 09:51:29 UTC; szepannek
 Encoding: UTF-8
+Author: Gero Szepannek [aut, cre],
+  Rabea Aschenbruck [aut]
+Maintainer: Gero Szepannek <gero.szepannek@web.de>
 Repository: CRAN
-Date/Publication: 2024-07-01 13:40:02 UTC
+Date/Publication: 2026-05-30 15:20:02 UTC

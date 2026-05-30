@@ -1,19 +1,19 @@
 ...tbds:  
           - check and fix PR #16 by ztime: Fix for different levels in training data and x.
+          - maybe add variable importance (LO/perm) to post-validate selection od lambda 
+
           - add test for allNAs and kproto_gower
           - check NA treatment (argument + remove of NAs, ln 133ff + are they ignored if na.rm=F?)
-          - migrate to 0.4-1 (after missing, gower and initialization updates)
-          - maybe add variable importance (LO/perm) to post-validate selection od lambda 
           - check -itemize environment in validation_kproto.Rd (v0.3-14)
-    
-    
-          -	clprofiles(): 
+        
+          - clprofiles(): 
             1) add legends for factors
-            2) check additional input parameter for a) w/o ask = T  b) specify mfrow/mfcol for simultaneous plots of several variables (+ add error check for this option if # of variables does not match grid)
-            ...is there aby potential impact on plot.kproto?
-          - try to remember why has there been clprofiles and not plot.kproto so far? (...x argument for keep.data = F? )
+            2) check additional input parameter for a) w/o ask = T  b) specify mfrow/mfcol for simultaneous plots of several variables 
+               (+ add error check for this option if # of variables does not match grid)
+            ...is there any potential impact on plot.kproto?
 
-clustMixType_0.4-1  2024-06-05  - for type=gower: enable na.rm=imp.onestep and fix na.rm=no
+clustMixType_0.5-1  2026-05-29  - kproto2silhouette.R added (request from Sam Sievertsen), DESCRIPTION modified w.r.t. new Authors@R field
+clustMixType_0.4-2  2024-06-05  - for type=gower: enable na.rm=imp.onestep and fix na.rm=no
 clustMixType_0.4-1  2024-06-05  - enable clustervalidation for type=gower
 clustMixType_0.3-17 2024-06-05  - fixed minor issues: print.kproto (num of categoricals); kproto (consistent description of the type argument)
 clustMixType_0.3-16 2023-12-17  - kprototypes: new default type = "Huang" added (ln.177) to make sure. (internally relabelled as type = "standard". old call type = "standard" is still possible.)

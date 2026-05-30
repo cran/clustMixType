@@ -702,21 +702,45 @@ test_that("resulting stability objects are as expected",{
 )
 
 
+context("checking kproto2silhouettes.\n")
 
+set.seed(42)
+n   <- 50
+prb <- 0.9
+muk <- 1.5 
+clusid <- rep(1:4, each = n)
 
+x1 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+x1 <- c(x1, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+x1 <- as.factor(x1)
 
+x2 <- sample(c("A","B"), 2*n, replace = TRUE, prob = c(prb, 1-prb))
+x2 <- c(x2, sample(c("A","B"), 2*n, replace = TRUE, prob = c(1-prb, prb)))
+x2 <- as.factor(x2)
 
+x3 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
+x4 <- c(rnorm(n, mean = -muk), rnorm(n, mean = muk), rnorm(n, mean = -muk), rnorm(n, mean = muk))
 
+x <- data.frame(x1,x2,x3,x4)
 
+# apply k-prototypes
+kpres <- kproto(x, 4)
 
+# compute silhouette widhts
+# extract object of class sil
+sils <- kproto2silhouette(kpres)
 
+test_that("checking class of kproto2silhouette",{
+  expect_true(inherits(sils, "silhouette"))
+  }
+)
 
+cindex_value <- validation_kproto(method = "silhouette", object = kpres)
 
-
-
-
-
-
+test_that("comparing average silhouette with validation_kproto",{
+  expect_true(round(mean(sils[,3]), 6) == round(cindex_value, 6))
+  }
+)
 
 
 
