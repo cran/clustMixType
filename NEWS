@@ -1,24 +1,48 @@
-...tbds:  
-          - check and fix PR #16 by ztime: Fix for different levels in training data and x.
-          - maybe add variable importance (LO/perm) to post-validate selection od lambda 
+tbd:  
 
-          - add test for allNAs and kproto_gower
+	  0.5-3          
+          - importance: ... add argument for internal call
+	  - test seting lanbda Vector  for importance in type = gower  
+	  - modify lambdaest: add Argument method = NULL 
+ 	    - if (!is.null(method)): overwrite num.methodund fac. method  + message	            
+	    - method = "huang" -> lambda = mean(sd()) or "heuristic" 
+            - num.method = "sd"/"var", fac. method = "gini", "hamming"
+
+	  0.5-4
+          - check and fix PR #16 by ztime: Fix for different levels in training data and x.
+          - "Fehler in kproto.default(x, k =i, nstart = 5) :
+	     No factor variables in x! Try using kmeans()..."
+	     # Kommt bei character Variablen
+          - reduce number of time consuming Tests in validate
+  	  - add test for allNAs and kproto_gower
           - check NA treatment (argument + remove of NAs, ln 133ff + are they ignored if na.rm=F?)
-          - check -itemize environment in validation_kproto.Rd (v0.3-14)
-        
+          - add option 'k-pod' (same as imp.internal) for missing argument + add reference to chi, chi
+          - check why test_that Fails for gower although successful if ran isolated (?)
+         
+          - nelder-mead # herfindahl
+
+          - clprofiles(kpres, x) # Bei fehlenden Werten        
           - clprofiles(): 
             1) add legends for factors
             2) check additional input parameter for a) w/o ask = T  b) specify mfrow/mfcol for simultaneous plots of several variables 
                (+ add error check for this option if # of variables does not match grid)
             ...is there any potential impact on plot.kproto?
 
-clustMixType_0.5-1  2026-05-29  - kproto2silhouette.R added (request from Sam Sievertsen), DESCRIPTION modified w.r.t. new Authors@R field
-clustMixType_0.4-2  2024-06-05  - for type=gower: enable na.rm=imp.onestep and fix na.rm=no
-clustMixType_0.4-1  2024-06-05  - enable clustervalidation for type=gower
+          - check -itemize environment in validation_kproto.Rd (v0.3-14)
+
+
+clustMixType_0.5-2  2026-06-25  - arguments to output values added. 
+				- importance_kproto() added.
+clustMixType_0.5-1  2026-05-29  - kproto2silhouette.R added (request from Sam Sievertsen). 
+                                - DESCRIPTION modified w.r.t. new Authors@R field.
+
+clustMixType_0.4-2  2024-06-05  - for type = gower: enable na.rm = imp.onestep and fix na.rm = no
+clustMixType_0.4-1  2024-06-05  - enable clustervalidation for type = gower
+
 clustMixType_0.3-17 2024-06-05  - fixed minor issues: print.kproto (num of categoricals); kproto (consistent description of the type argument)
 clustMixType_0.3-16 2023-12-17  - kprototypes: new default type = "Huang" added (ln.177) to make sure. (internally relabelled as type = "standard". old call type = "standard" is still possible.)
 clustMixType_0.3-15 2023-12-13  - kprototypes: ln. 272-281 removed (missings removed twice for na.rm = "yes", the 2nd time is redundant)
-                                (- kprtotypes_gower: ln. commented 135-163 removed to be the code more readable.)
+                                (- kprototypes_gower: ln. commented 135-163 removed to be the code more readable.)
 clustMixType_0.3-14 2023-12-10  - winbuilder note: validation_kproto.Rd: \itemize environment changed: unlike argument lists, \item in these formats is followed by a space and the text (not enclosed in braces) 
 clustMixType_0.3-13 2023-12-09  - Date field changed to ISO 8601 yyyy-mm-dd format according to Rwinbuilder check note.
                                 - kproto_gower.Rd, \item{lambda}  ...\code{code}{type = "gower"}... corrected.
@@ -26,7 +50,7 @@ clustMixType_0.3-12 2023-10-25  - implemented three initialization strategies, f
                                 - clean up lambdaest
                                 - include lambdaest into kproto
                                 - fixed some minor typos
-                                - fixed: no output if keep.data = FALSE and nstart>1
+                                - fixed: no output if keep.data = FALSE and nstart > 1
 clustMixType_0.3-11 2023-09-05  - .rd file for stability_kproto
                                 - bugfix stability_kproto: undefined input parameter
 clustMixType_0.3-10 2023-09-01  - cluster stability determination added, along with updated tests
@@ -54,7 +78,6 @@ clustMixType_0.3-2  2022-11-19  - example added to .Rd
                                 - error check in validation_kproto() ln. 972f as long as if it is not implemented for type == "gower"
 clustMixType_0.3-1  2022-11-13  - kproto_gower.R added (internally called by kproto)    (...not built --> v0.3-2)
                                 - impacts on kproto (new type argument), print.kproto and predict.kproto 
-
 
 clustMixType_0.2-15 2021-08-16  - validation_kproto: bug fix for special case of variable selection by lambda for no mixed-type data
                                 - few minor bug fixes for special cases with missing values

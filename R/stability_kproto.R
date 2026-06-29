@@ -126,7 +126,7 @@ stability_det_k <- function(data, k, method, B = 100, lambda = NULL, ...){
 
 
 
-#' @title Determination the stability of k Prototypes Clustering
+#' @title Determination of the stability of k Prototypes Clustering
 #'
 #' @description Calculating the stability for a k-Prototypes clustering with k clusters or computing the stability-based optimal number of clusters for k-Prototype clustering. Possible stability indices are: \code{Jaccard}, \code{Rand}, \code{Fowlkes \& Mallows} and \code{Luxburg}.
 #' 
@@ -149,7 +149,10 @@ stability_det_k <- function(data, k, method, B = 100, lambda = NULL, ...){
 #' @references \itemize{
 #'     \item Aschenbruck, R., Szepannek, G., Wilhelm, A.F.X (2023): 
 #'     Stability of mixed-type cluster partitions for determination of the number of clusters. 
-#'     \emph{Submitted}.
+#'     In:  In: Brito, P., Dias, J.G., Lausen, B., Montanari, A., Nugent, R. (eds) 
+#'     \emph{Classification and Data Science in the Digital Age. IFCS 2022.} 
+#'     Studies in Classification, Data Analysis, and Knowledge Organization,
+#'     \doi{10.1007/978-3-031-09034-9_6}.
 #'     
 #'     \item von Luxburg, U. (2010): 
 #'      Clustering stability: an overview. 

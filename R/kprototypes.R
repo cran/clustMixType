@@ -3,6 +3,8 @@
 # - Bridget Ssendagala 
 # - Ben Feng 
 # - Galen Terziysky
+# - ztime (PR #16)
+# - Jessica Hertel
 ###############################################
 
 #' @title k-Prototypes Clustering
@@ -81,7 +83,13 @@ kproto <- function (x, ...)
 #' @return \item{inits}{Initial prototypes determined by specified initialization strategy, if init is either 'nbh.dens' or 'sel.cen'.}
 #' @return \item{nstart.m}{only for 'init = nstart_m': determined number of randomly choosen sets.}
 #' @return \item{data}{if 'keep.data = TRUE' than the original data will be added to the output list.}
-#' @return \item{type}{Type argument of the function call.}
+#' @return \item{type}{\code{type} argument of the function call.}
+#' @return \item{k.init}{\code{k} argument of the function call.}
+#' @return \item{iter.max}{\code{iter.max} argument of the function call.}
+#' @return \item{nstart}{\code{nstart} argument of the function call.}
+#' @return \item{na.rm}{\code{na.rm} argument of the function call.}
+#' @return \item{init}{\code{init} argument of the function call.}
+#' @return \item{p_nstart.m}{\code{p_nstart.m} argument of the function call.}
 #' @return \item{stdization}{Only returned for \code{type = "gower"}: List of standardized ranks for ordinal variables 
 #' and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
 
@@ -127,12 +135,12 @@ kproto <- function (x, ...)
 #' @references \itemize{
 #'     \item Szepannek, G. (2018): clustMixType: User-Friendly Clustering of Mixed-Type Data in R, 
 #'     {\emph{The R Journal 10/2}}, 200-208, \doi{10.32614/RJ-2018-048}.
-#'     \item Aschenbruck, R., Szepannek, G., Wilhelm, A. (2022): Imputation Strategies for Clustering Mixed‑Type Data with Missing Values, 
-#'     {\emph{Journal of Classification}}, \doi{10.1007/s00357-022-09422-y}. 
-#'     \item Szepannek, G., Aschenbruck, R., Wilhelm, A. (2024): Clustering Large Mixed-Type Data with Ordinal Variables,
-#'     {\emph{Advances in Data Analysis and Classification}}, \doi{10.1007/s11634-024-00595-5}.
 #'     \item Z.Huang (1998): Extensions to the k-Means Algorithm for Clustering Large Data Sets with Categorical Variables, 
 #'           {\emph{Data Mining and Knowledge Discovery 2}}, 283-304.
+#'     \item Szepannek, G., Aschenbruck, R., Wilhelm, A. (2024): Clustering Large Mixed-Type Data with Ordinal Variables,
+#'     {\emph{Advances in Data Analysis and Classification}}, \doi{10.1007/s11634-024-00595-5}.
+#'     \item Aschenbruck, R., Szepannek, G., Wilhelm, A. (2022): Imputation Strategies for Clustering Mixed‑Type Data with Missing Values, 
+#'     {\emph{Journal of Classification}}, \doi{10.1007/s00357-022-09422-y}. 
 #'   }
 #' 
 #' @rdname kproto
@@ -546,7 +554,14 @@ kproto.default <- function(x, k, lambda = NULL, type = "huang", iter.max = 100, 
     res$data <- x
   }
   
-  res$type <- type
+  res$type       <- type
+  res$k.init     <- k_input
+  res$iter.max   <- iter.max
+  res$nstart     <- nstart
+  res$na.rm      <- na.rm
+  res$init       <- init
+  res$p_nstart.m <- p_nstart.m
+  
   class(res) <- "kproto"
   return(res)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/stability_kproto.R
 \name{stability_kproto}
 \alias{stability_kproto}
-\title{Determination the stability of k Prototypes Clustering}
+\title{Determination of the stability of k Prototypes Clustering}
 \usage{
 stability_kproto(
   object,
@@ -67,7 +67,10 @@ stab <- stability_kproto(method = c("luxburg","fowlkesmallows"), object = kpres)
 \itemize{
     \item Aschenbruck, R., Szepannek, G., Wilhelm, A.F.X (2023): 
     Stability of mixed-type cluster partitions for determination of the number of clusters. 
-    \emph{Submitted}.
+    In:  In: Brito, P., Dias, J.G., Lausen, B., Montanari, A., Nugent, R. (eds) 
+    \emph{Classification and Data Science in the Digital Age. IFCS 2022.} 
+    Studies in Classification, Data Analysis, and Knowledge Organization,
+    \doi{10.1007/978-3-031-09034-9_6}.
     
     \item von Luxburg, U. (2010): 
      Clustering stability: an overview. 

@@ -90,7 +90,19 @@ with the k-Prototypes algorithm. In: {\emph{Cladag 2023 Book of abstracts and sh
 
 \item{data}{if 'keep.data = TRUE' than the original data will be added to the output list.}
 
-\item{type}{Type argument of the function call.}
+\item{type}{\code{type} argument of the function call.}
+
+\item{k.init}{\code{k} argument of the function call.}
+
+\item{iter.max}{\code{iter.max} argument of the function call.}
+
+\item{nstart}{\code{nstart} argument of the function call.}
+
+\item{na.rm}{\code{na.rm} argument of the function call.}
+
+\item{init}{\code{init} argument of the function call.}
+
+\item{p_nstart.m}{\code{p_nstart.m} argument of the function call.}
 
 \item{stdization}{Only returned for \code{type = "gower"}: List of standardized ranks for ordinal variables 
 and an additional element \code{num_ranges} with ranges of all numeric variables. Used by \code{\link{predict.kproto}}.}
@@ -157,12 +169,12 @@ clprofiles(kpres, x)
 \itemize{
     \item Szepannek, G. (2018): clustMixType: User-Friendly Clustering of Mixed-Type Data in R, 
     {\emph{The R Journal 10/2}}, 200-208, \doi{10.32614/RJ-2018-048}.
-    \item Aschenbruck, R., Szepannek, G., Wilhelm, A. (2022): Imputation Strategies for Clustering Mixed‑Type Data with Missing Values, 
-    {\emph{Journal of Classification}}, \doi{10.1007/s00357-022-09422-y}. 
-    \item Szepannek, G., Aschenbruck, R., Wilhelm, A. (2024): Clustering Large Mixed-Type Data with Ordinal Variables,
-    {\emph{Advances in Data Analysis and Classification}}, \doi{10.1007/s11634-024-00595-5}.
     \item Z.Huang (1998): Extensions to the k-Means Algorithm for Clustering Large Data Sets with Categorical Variables, 
           {\emph{Data Mining and Knowledge Discovery 2}}, 283-304.
+    \item Szepannek, G., Aschenbruck, R., Wilhelm, A. (2024): Clustering Large Mixed-Type Data with Ordinal Variables,
+    {\emph{Advances in Data Analysis and Classification}}, \doi{10.1007/s11634-024-00595-5}.
+    \item Aschenbruck, R., Szepannek, G., Wilhelm, A. (2022): Imputation Strategies for Clustering Mixed‑Type Data with Missing Values, 
+    {\emph{Journal of Classification}}, \doi{10.1007/s00357-022-09422-y}. 
   }
 }
 \author{

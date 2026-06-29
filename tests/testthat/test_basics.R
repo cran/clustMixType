@@ -213,9 +213,15 @@ test_that("Prediction for data frame with one single observation for type = gowe
   expect_equal(class(pred$dists)[1], "matrix")}
 )
 
-kpres <- kproto(x = x, k = x[1:4,])
+set.seed(42)
+kpres <- kproto(x = x, k = x[1:4,], type = "gower")
 test_that("kproto_gower works for is.data.frame(k).",{
   expect_equal(class(kpres), "kproto")}
 )
 
+# vim  <- importance_kproto(kpres, rand = F)
+# test_that("importance_kproto decomposition of tot.withinss",{
+#   expect_equal(as.numeric(rowSums(vim$vi_decomp)[1]), as.numeric(kpres$tot.withinss))
+# }
+# )
 
